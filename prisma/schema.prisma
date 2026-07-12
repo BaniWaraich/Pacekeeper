@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum QuestionType {
+  MCQ
+  FLASHCARD
+}
+
+enum Outcome {
+  CORRECT
+  INCORRECT
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  goals    Goal[]
+  attempts Attempt[]
+  notes    Note[]
+}
+
+model Goal {
+  id                 String    @id @default(cuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title              String
+  examDate           DateTime  @db.Date
+  dailyNewTopicCap   Int       @default(5)
+  bufferDays         Int       @default(2)
+  currentPlanVersion Int       @default(0)
+  archivedAt         DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  modules     Module[]
+  planEntries PlanEntry[]
+
+  @@index([userId])
+}
+
+model Module {
+  id         String    @id @default(cuid())
+  goalId     String
+  goal       Goal      @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title      String
+  orderIndex Int
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  topics Topic[]
+
+  @@index([goalId])
+}
+
+model Topic {
+  id         String    @id @default(cuid())
+  moduleId   String
+  module     Module    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title      String
+  material   String?   @db.Text
+  orderIndex Int
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  questions   Question[]
+  planEntries PlanEntry[]
+  notes       Note[]
+
+  @@index([moduleId])
+}
+
+model Question {
+  id         String       @id @default(cuid())
+  topicId    String
+  topic      Topic        @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  type       QuestionType
+  prompt     String       @db.Text
+  payload    Json
+  archivedAt DateTime?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  attempts Attempt[]
+
+  @@index([topicId])
+}
+
+model Attempt {
+  id             String   @id // client-generated UUID = idempotency key
+  questionId     String
+  question       Question @relation(fields: [questionId], references: [id], onDelete: Restrict)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  outcome        Outcome
+  selectedOption Int? // MCQ audit trail; null for flashcards
+  attemptedAt    DateTime
+  createdAt      DateTime @default(now())
+  // append-only: no updatedAt by design
+
+  @@index([userId, attemptedAt])
+  @@index([questionId, attemptedAt])
+}
+
+model PlanEntry {
+  id          String   @id @default(cuid())
+  goalId      String
+  goal        Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  topicId     String
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  plannedDate DateTime @db.Date
+  planVersion Int
+  createdAt   DateTime @default(now())
+
+  @@unique([goalId, planVersion, topicId])
+  @@index([goalId, planVersion, plannedDate])
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  topicId   String
+  topic     Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([topicId])
+}

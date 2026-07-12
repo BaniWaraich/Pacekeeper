@@ -1,0 +1,10 @@
+allowBuilds:
+  '@google/genai': true
+  '@prisma/engines': true
+  core-js: false
+  prisma: true
+  protobufjs: false
+  sharp: true
+  unrs-resolver: true
+  esbuild: true
+  '@prisma/client': true
