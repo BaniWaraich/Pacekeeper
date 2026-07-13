@@ -11,6 +11,10 @@ export default async function LoginPage({
   // Only follow same-origin paths — signIn(..., { redirect: false })
   // bypasses NextAuth's own callback-url validation, so an absolute or
   // protocol-relative URL here would be an open redirect.
+  // v1: only relative paths accepted; NextAuth's absolute
+  // callbackUrls are intentionally rejected in favor of /today.
+  // If deep-link restore is ever needed, extend to accept
+  // same-origin absolute URLs.
   const safeCallbackUrl =
     callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
       ? callbackUrl
