@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth, signOut } from "@/auth";
 
 // Placeholder so the (app) route group exists for the proxy to protect.
@@ -13,6 +14,12 @@ export default async function TodayPage() {
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Signed in as {session?.user?.email} (id: {session?.user?.id})
       </p>
+      <Link
+        href="/goals"
+        className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+      >
+        Goals
+      </Link>
       <form
         action={async () => {
           "use server";
