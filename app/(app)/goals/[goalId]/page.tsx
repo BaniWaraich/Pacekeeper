@@ -32,12 +32,20 @@ export default async function GoalStructurePage({
             exam {goal.examDate.toISOString().slice(0, 10)}
           </p>
         </div>
-        <Link
-          href="/goals"
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          All goals
-        </Link>
+        <span className="flex items-baseline gap-4">
+          <Link
+            href={`/goals/${goal.id}/import`}
+            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Import from notes
+          </Link>
+          <Link
+            href="/goals"
+            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            All goals
+          </Link>
+        </span>
       </header>
 
       <StructureBuilder
