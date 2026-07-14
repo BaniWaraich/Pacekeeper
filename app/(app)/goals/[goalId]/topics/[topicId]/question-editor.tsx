@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { QuestionInput } from "@/lib/validations";
 import { fetchJson } from "../../../fetch-json";
+import {
+  QuestionFields,
+  actionClass,
+  buttonClass,
+  emptyForm,
+  toFormState,
+  toQuestionInput,
+  type FormState,
+} from "./question-fields";
 
 export type QuestionRow = {
   id: string;
@@ -14,44 +22,10 @@ export type QuestionRow = {
     | { back: string };
 };
 
-const inputClass =
-  "rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
-const buttonClass =
-  "rounded border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
-const actionClass =
-  "text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-500 dark:hover:text-zinc-100";
-
-type FormState = {
-  type: "MCQ" | "FLASHCARD";
-  prompt: string;
-  options: string[];
-  correctIndex: number;
-  back: string;
-};
-
-const emptyForm: FormState = {
-  type: "MCQ",
-  prompt: "",
-  options: ["", "", "", ""],
-  correctIndex: 0,
-  back: "",
-};
-
-function toQuestionInput(form: FormState): QuestionInput {
-  return form.type === "MCQ"
-    ? {
-        type: "MCQ",
-        prompt: form.prompt,
-        options: form.options,
-        correctIndex: form.correctIndex,
-      }
-    : { type: "FLASHCARD", prompt: form.prompt, back: form.back };
-}
-
 /**
  * Manual authoring for both question types. Creation posts through
  * POST /api/questions/batch — the same confirmation-gate endpoint the AI
- * draft flow (step 13) will use. Edit is a full-replace PATCH; archive is
+ * draft flow (step 13) uses. Edit is a full-replace PATCH; archive is
  * DELETE. All content rendered as text only (invariant 9).
  */
 export function QuestionEditor({
@@ -83,21 +57,20 @@ export function QuestionEditor({
   function startEdit(q: QuestionRow) {
     setEditingId(q.id);
     setForm(
-      q.type === "MCQ" && "options" in q.payload
-        ? {
-            type: "MCQ",
-            prompt: q.prompt,
-            options: [...q.payload.options],
-            correctIndex: q.payload.correctIndex,
-            back: "",
-          }
-        : {
-            type: "FLASHCARD",
-            prompt: q.prompt,
-            options: ["", "", "", ""],
-            correctIndex: 0,
-            back: "back" in q.payload ? q.payload.back : "",
-          },
+      toFormState(
+        q.type === "MCQ" && "options" in q.payload
+          ? {
+              type: "MCQ",
+              prompt: q.prompt,
+              options: q.payload.options,
+              correctIndex: q.payload.correctIndex,
+            }
+          : {
+              type: "FLASHCARD",
+              prompt: q.prompt,
+              back: "back" in q.payload ? q.payload.back : "",
+            },
+      ),
     );
   }
 
@@ -181,92 +154,7 @@ export function QuestionEditor({
           {editingId ? "Edit question" : "New question"}
         </h2>
 
-        <div className="flex gap-3 text-sm text-zinc-700 dark:text-zinc-300">
-          {(["MCQ", "FLASHCARD"] as const).map((t) => (
-            <label key={t} className="flex items-center gap-1">
-              <input
-                type="radio"
-                checked={form.type === t}
-                onChange={() => setForm((f) => ({ ...f, type: t }))}
-              />
-              {t === "MCQ" ? "MCQ" : "Flashcard"}
-            </label>
-          ))}
-        </div>
-
-        <textarea
-          className={inputClass}
-          placeholder="Prompt"
-          value={form.prompt}
-          onChange={(e) => setForm((f) => ({ ...f, prompt: e.target.value }))}
-          required
-        />
-
-        {form.type === "MCQ" ? (
-          <div className="flex flex-col gap-2">
-            {form.options.map((option, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  title="Correct answer"
-                  checked={form.correctIndex === i}
-                  onChange={() => setForm((f) => ({ ...f, correctIndex: i }))}
-                />
-                <input
-                  className={`${inputClass} flex-1`}
-                  placeholder={`Option ${i + 1}`}
-                  value={option}
-                  onChange={(e) =>
-                    setForm((f) => ({
-                      ...f,
-                      options: f.options.map((o, j) =>
-                        j === i ? e.target.value : o,
-                      ),
-                    }))
-                  }
-                  required
-                />
-                <button
-                  type="button"
-                  className={actionClass}
-                  disabled={form.options.length <= 2}
-                  onClick={() =>
-                    setForm((f) => ({
-                      ...f,
-                      options: f.options.filter((_, j) => j !== i),
-                      correctIndex:
-                        f.correctIndex === i
-                          ? 0
-                          : f.correctIndex > i
-                            ? f.correctIndex - 1
-                            : f.correctIndex,
-                    }))
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              className={actionClass}
-              disabled={form.options.length >= 6}
-              onClick={() =>
-                setForm((f) => ({ ...f, options: [...f.options, ""] }))
-              }
-            >
-              Add option
-            </button>
-          </div>
-        ) : (
-          <textarea
-            className={inputClass}
-            placeholder="Back (the answer)"
-            value={form.back}
-            onChange={(e) => setForm((f) => ({ ...f, back: e.target.value }))}
-            required
-          />
-        )}
+        <QuestionFields value={form} onChange={setForm} />
 
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400">{error}</p>

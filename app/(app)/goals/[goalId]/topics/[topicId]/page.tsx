@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { QuestionEditor, type QuestionRow } from "./question-editor";
+import { TopicAuthoring } from "./topic-authoring";
 
 export default async function TopicQuestionsPage({
   params,
@@ -57,6 +58,11 @@ export default async function TopicQuestionsPage({
           </Link>
         </span>
       </header>
+
+      <TopicAuthoring
+        topicId={topic.id}
+        initialMaterial={topic.material ?? ""}
+      />
 
       <QuestionEditor
         topicId={topic.id}
