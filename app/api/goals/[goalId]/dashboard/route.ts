@@ -68,6 +68,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     const regime: DashboardRegime = {
       regime: result.regime.regime,
       metrics: result.regime.metrics,
+      behindCurrentPlan: state.behindCurrentPlan,
     };
     if (result.regime.regime === "TRIAGE") {
       regime.keptCount = result.regime.kept.length;

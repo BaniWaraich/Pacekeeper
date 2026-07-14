@@ -1,6 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { instantToLocalDate, todayLocalInZone } from "@/lib/dates";
-import { computeEngineResult } from "@/lib/engine";
+import {
+  behindCurrentPlan,
+  computeEngineResult,
+  daysUsable,
+  redistribute,
+} from "@/lib/engine";
 import type {
   AttemptProjection,
   EngineResult,
@@ -8,6 +13,7 @@ import type {
   LocalDate,
   PaceMetrics,
   PaceRegime,
+  ProposedPlanEntry,
   QuestionProjection,
   TopicProjection,
 } from "@/lib/engine/types";
@@ -48,6 +54,21 @@ export type GoalEngineState = {
   planned: boolean;
   todayLocal: LocalDate;
   result: EngineResult;
+  /**
+   * Behind the CURRENT plan version (lib/engine/schedule.ts) — the signal the
+   * regime alone can't provide: confirming a proposal changes no regime
+   * metric, so this is what separates falling-behind-unconfirmed from a
+   * confirmed plan being followed. Always false for unplanned goals.
+   */
+  behindCurrentPlan: boolean;
+  /**
+   * The first-plan proposal for an unplanned goal (step 14): §5.6
+   * redistribute over the active, unintroduced topics. Absent for planned
+   * goals — and for unplanned goals the engine classified TRIAGE (the
+   * baseline-independent check), whose kept/deferred split IS the honest
+   * initial proposal.
+   */
+  initialProposal?: ProposedPlanEntry[];
   /** Enrichment for wire responses — engine outputs carry ids only. */
   topicMeta: Map<string, TopicMeta>;
   questionMeta: Map<string, QuestionMeta>;
@@ -114,6 +135,10 @@ export type DashboardDeferredTopic = {
 export type DashboardRegime = {
   regime: PaceRegime;
   metrics: PaceMetrics;
+  /** Behind the CURRENT plan version — discriminates the banner arc alone
+   *  (no planVersion conjunct): SLIPPING/TRIAGE with this false render the
+   *  confirmed "plan in effect" wording instead of a recalibration CTA. */
+  behindCurrentPlan: boolean;
   /** TRIAGE only: size of the kept set. */
   keptCount?: number;
   /** TRIAGE only: the explicit "won't reach" list — shown, never hidden. */
@@ -153,6 +178,77 @@ export type DashboardResponse =
       todayLocal: LocalDate;
       regime: null;
     };
+
+/* ── Wire shapes for POST …/recalibrate (§6.2, step 14) ────────────────────
+ * The proposal read. Discriminated on `mode`; `planned: false` variants are
+ * the initial-planning flow (§6 gap resolved by ruling: recalibrate covers
+ * the unplanned case). `basePlanVersion` is echoed verbatim into
+ * PUT …/plan — null for initial (writes v0, no bump), the goal's
+ * currentPlanVersion otherwise (writes N+1). */
+
+export type ProposedEntryItem = {
+  topicId: string;
+  title: string;
+  moduleTitle: string;
+  plannedDate: LocalDate;
+};
+
+export type TriagedTopicItem = {
+  topicId: string;
+  title: string;
+  moduleTitle: string;
+  readiness: number;
+};
+
+type RecalibrateBase = {
+  goalId: string;
+  title: string;
+  examDate: LocalDate;
+  todayLocal: LocalDate;
+  dailyNewTopicCap: number;
+  daysUsable: number;
+};
+
+export type RecalibrateResponse =
+  | (RecalibrateBase & {
+      planned: false;
+      mode: "INITIAL";
+      basePlanVersion: null;
+      proposedEntries: ProposedEntryItem[];
+    })
+  | (RecalibrateBase & {
+      /** Infeasible from day one (requiredRate ≥ cap before any history) —
+       *  TRIAGE's split with none of its fallen-behind framing. */
+      planned: false;
+      mode: "INITIAL_TRIAGE";
+      basePlanVersion: null;
+      kept: TriagedTopicItem[];
+      deferred: TriagedTopicItem[];
+      proposedEntries: ProposedEntryItem[];
+    })
+  | (RecalibrateBase & {
+      /** Nothing to confirm — silent absorption (§5.6). */
+      planned: true;
+      mode: "ON_PACE";
+      basePlanVersion: number;
+      metrics: PaceMetrics;
+    })
+  | (RecalibrateBase & {
+      planned: true;
+      mode: "SLIPPING";
+      basePlanVersion: number;
+      metrics: PaceMetrics;
+      proposedEntries: ProposedEntryItem[];
+    })
+  | (RecalibrateBase & {
+      planned: true;
+      mode: "TRIAGE";
+      basePlanVersion: number;
+      metrics: PaceMetrics;
+      kept: TriagedTopicItem[];
+      deferred: TriagedTopicItem[];
+      proposedEntries: ProposedEntryItem[];
+    });
 
 /** `@db.Date` columns come back as UTC-midnight instants; the calendar day
  *  is the first 10 chars of the ISO string — lossless, no tz math. */
@@ -292,6 +388,20 @@ export async function loadGoalEngineState(
       .map((e) => [e.topicId, e.plannedDate]),
   );
 
+  const planned = goalProjection.planEntries.some((e) => e.planVersion === 0);
+
+  let initialProposal: ProposedPlanEntry[] | undefined;
+  if (!planned && result.regime.regime !== "TRIAGE") {
+    const introduced = new Set(
+      result.topicReadiness.filter((r) => r.introduced).map((r) => r.topicId),
+    );
+    initialProposal = redistribute(
+      topics.filter((t) => !t.archived && !introduced.has(t.id)),
+      todayLocal,
+      daysUsable(goalProjection, todayLocal),
+    );
+  }
+
   return {
     goal: {
       id: goal.id,
@@ -301,9 +411,19 @@ export async function loadGoalEngineState(
       bufferDays: goal.bufferDays,
       currentPlanVersion: goal.currentPlanVersion,
     },
-    planned: goalProjection.planEntries.some((e) => e.planVersion === 0),
+    planned,
     todayLocal,
     result,
+    behindCurrentPlan: planned
+      ? behindCurrentPlan(
+          goalProjection,
+          topics,
+          result.topicReadiness,
+          result.regime.regime,
+          todayLocal,
+        )
+      : false,
+    initialProposal,
     topicMeta,
     questionMeta,
     currentPlanDates,
