@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { READINESS_THRESHOLD } from "@/lib/engine/constants";
 import type { DashboardResponse } from "@/lib/engine-io";
+import { percent, ReadinessBar } from "../readiness-bar";
 import { useGoalReads } from "../use-goal-reads";
 
 /**
  * Per-goal cards: regime banner + readiness bars against the 0.6 threshold
  * (SPEC 6.6 — weakest first, every weak topic actionable in one click).
- * Read-only: SLIPPING/TRIAGE render current state; the recalibration and
- * triage confirmation flows are step 14.
+ * Read-only; the SLIPPING/TRIAGE banners link into the step-14 plan-review
+ * flow, and the arc discriminates on `behindCurrentPlan` ALONE (never
+ * planVersion — a freshly confirmed v0 goal must read as "in effect").
  */
 
 const REGIME_BANNER: Record<string, string> = {
@@ -21,7 +22,6 @@ const REGIME_BANNER: Record<string, string> = {
     "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100",
 };
 
-const percent = (x: number) => `${Math.round(x * 100)}%`;
 const rate = (x: number) => x.toFixed(1);
 
 export function DashboardView() {
@@ -113,15 +113,22 @@ function UnplannedBody({
       <p className="text-sm text-zinc-900 dark:text-zinc-50">
         No plan yet — pace can&apos;t be measured.
       </p>
-      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
-        Plan scheduling arrives with recalibration; keep building structure.
-      </p>
       <Link
-        href={`/goals/${data.goalId}`}
-        className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+        href={`/goals/${data.goalId}/plan`}
+        className="mt-2 inline-block text-sm font-medium text-zinc-900 underline hover:text-zinc-600 dark:text-zinc-50 dark:hover:text-zinc-300"
       >
-        Build out this goal →
+        Create your study plan →
       </Link>
+      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+        or{" "}
+        <Link
+          href={`/goals/${data.goalId}`}
+          className="underline hover:text-zinc-900 dark:hover:text-zinc-100"
+        >
+          keep building structure
+        </Link>{" "}
+        first.
+      </p>
     </div>
   );
 }
@@ -152,26 +159,52 @@ function PlannedBody({
               rhythm and everything is covered before {data.examDate}.
             </>
           )}
-          {regime.regime === "SLIPPING" && (
-            <>
-              <strong>Falling behind.</strong> Covering the remaining{" "}
-              {m.remainingTopics} topics now takes {rate(m.requiredRate)}/day,
-              up from the planned {rate(m.baselineRate)}/day.
-            </>
-          )}
-          {regime.regime === "TRIAGE" && (
-            <>
-              <strong>Full coverage is no longer realistic.</strong> At your
-              cap of {data.dailyNewTopicCap} new topics/day, only{" "}
-              {regime.keptCount} of the {triagePool} topics not yet ready fit
-              before {data.examDate}.{" "}
-              <strong>
-                {deferredCount} {deferredCount === 1 ? "topic is" : "topics are"}{" "}
-                at risk
-              </strong>{" "}
-              — listed below, weakest first.
-            </>
-          )}
+          {regime.regime === "SLIPPING" &&
+            (regime.behindCurrentPlan ? (
+              <>
+                <strong>Falling behind.</strong> Covering the remaining{" "}
+                {m.remainingTopics} topics now takes {rate(m.requiredRate)}
+                /day, up from the planned {rate(m.baselineRate)}/day.{" "}
+                <Link
+                  href={`/goals/${data.goalId}/plan`}
+                  className="font-medium underline"
+                >
+                  Review the recalibrated plan →
+                </Link>
+              </>
+            ) : (
+              <>
+                <strong>Plan redistributed.</strong> Following your
+                recalibrated pace of {rate(m.requiredRate)}/day.
+              </>
+            ))}
+          {regime.regime === "TRIAGE" &&
+            (regime.behindCurrentPlan ? (
+              <>
+                <strong>Full coverage is no longer realistic.</strong> At your
+                cap of {data.dailyNewTopicCap} new topics/day, only{" "}
+                {regime.keptCount} of the {triagePool} topics not yet ready fit
+                before {data.examDate}.{" "}
+                <strong>
+                  {deferredCount}{" "}
+                  {deferredCount === 1 ? "topic is" : "topics are"} at risk
+                </strong>{" "}
+                — listed below, weakest first.{" "}
+                <Link
+                  href={`/goals/${data.goalId}/plan`}
+                  className="font-medium underline"
+                >
+                  Review triage →
+                </Link>
+              </>
+            ) : (
+              <>
+                <strong>Triaged plan in effect.</strong> {regime.keptCount}{" "}
+                kept {regime.keptCount === 1 ? "topic" : "topics"} on schedule;{" "}
+                {deferredCount} deferred, at risk — listed below, weakest
+                first.
+              </>
+            ))}
         </p>
       </div>
 
@@ -231,24 +264,5 @@ function PlannedBody({
         ))}
       </ul>
     </>
-  );
-}
-
-/** 0–1 readiness as a bar with a tick at READINESS_THRESHOLD (0.6): fills
- *  emerald at/above the threshold, amber below it. */
-function ReadinessBar({ value }: { value: number }) {
-  return (
-    <div className="relative h-2 w-full rounded bg-zinc-200 dark:bg-zinc-800">
-      <div
-        className={`h-full rounded ${
-          value >= READINESS_THRESHOLD ? "bg-emerald-500" : "bg-amber-500"
-        }`}
-        style={{ width: percent(value) }}
-      />
-      <div
-        className="absolute inset-y-0 w-px bg-zinc-500 dark:bg-zinc-400"
-        style={{ left: percent(READINESS_THRESHOLD) }}
-      />
-    </div>
   );
 }
