@@ -35,6 +35,13 @@ export function notFound() {
   );
 }
 
+/** 409 for optimistic-concurrency failures — a write whose baseline moved
+ *  between read and confirm (step 14: `PLAN_VERSION_CONFLICT`). The client
+ *  refetches and re-presents, never retries the stale payload. */
+export function conflict(error: string, code: string) {
+  return NextResponse.json({ error, code }, { status: 409 });
+}
+
 /** 503 for the AI touchpoints (§6.3, §8 #1): Gemini down / rate-limited /
  *  malformed-after-retry / timeout / key absent. The stable envelope the
  *  "two buttons break" toast renders — always `{ error, code }`. */

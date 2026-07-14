@@ -28,6 +28,7 @@ const OPTIONS_MAX = 6; // MCQ options upper bound (§6.1)
 const AI_MODULES_MAX = 30; // AI structure response: modules array
 const AI_TOPICS_MAX = 30; // AI structure response: topics-per-module array
 const AI_COUNT_MAX = 20; // POST /api/ai/questions `count` (§6.3)
+const PLAN_ENTRIES_MAX = 1000; // PUT /api/goals/:id/plan entries (§6.2)
 
 /* ── Shared field schemas ─────────────────────────────────────────────── */
 
@@ -177,10 +178,25 @@ export const planEntrySchema = z.strictObject({
   plannedDate: z.iso.date(), // calendar day (`@db.Date`)
 });
 
-/** PUT /api/goals/:id/plan — non-empty entries. "Topics belong to goal" is a
- *  DB ownership check and lives in the route, not here. */
+/** PUT /api/goals/:id/plan — non-empty entries, one per topic.
+ *  `basePlanVersion` is the plan version the proposal was computed against
+ *  (step-14 staleness ruling): `null` means the goal was UNPLANNED — the
+ *  confirm writes v0 without bumping — while a number N means "recalibrate
+ *  version N" and writes N+1. `null` is not `0`: after the no-bump v0 write a
+ *  planned goal also sits at version 0, and only the null/number split keeps
+ *  a stale initial confirm from merging entries into the immutable v0.
+ *  "Topics belong to goal" and the version check itself are DB concerns and
+ *  live in the route, not here. */
 export const planWriteSchema = z.strictObject({
-  entries: z.array(planEntrySchema).min(1),
+  basePlanVersion: z.number().int().nonnegative().nullable(),
+  entries: z
+    .array(planEntrySchema)
+    .min(1)
+    .max(PLAN_ENTRIES_MAX)
+    .refine(
+      (entries) => new Set(entries.map((e) => e.topicId)).size === entries.length,
+      { message: "entries must not repeat a topicId" },
+    ),
 });
 
 export type AttemptCreate = z.infer<typeof attemptCreateSchema>;

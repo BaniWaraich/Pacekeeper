@@ -40,5 +40,5 @@ export function computeEngineResult(
 export * from "./types";
 export * from "./constants";
 export { questionStrength, computeStrengths, computeReadiness } from "./strength";
-export { daysUsable, buildTodayView, redistribute } from "./schedule";
+export { daysUsable, buildTodayView, redistribute, behindCurrentPlan } from "./schedule";
 export { computeRegime, originalPlanLength } from "./regime";

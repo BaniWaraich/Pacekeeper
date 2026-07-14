@@ -5,6 +5,7 @@ import { addDays, dayDiff } from "./date-math";
 import type {
   GoalProjection,
   LocalDate,
+  PaceRegime,
   ProposedPlanEntry,
   QuestionStrength,
   TodayView,
@@ -82,6 +83,48 @@ export function buildTodayView(
     .map((e) => e.topicId);
 
   return { reviews, newTopicIds };
+}
+
+/**
+ * Whether the user is behind the CURRENT plan version — the signal the regime
+ * classifier cannot provide. Regime metrics derive from remaining topics,
+ * daysUsable, the v0 span, and the cap, none of which change when a proposal
+ * is confirmed: SLIPPING stays SLIPPING (and TRIAGE stays TRIAGE) right after
+ * the user accepts a redistribution. This distinguishes
+ * falling-behind-unconfirmed from a confirmed plan being followed:
+ *
+ * - a current-version entry for an active, unintroduced topic dated strictly
+ *   before today (an entry dated today is still doable, not behind), or
+ * - under SLIPPING, an active unintroduced topic with no current-version
+ *   entry at all (nothing schedules it — the plan predates it). TRIAGE is
+ *   exempt: its deferred set is entry-less by design, not by neglect.
+ */
+export function behindCurrentPlan(
+  goal: GoalProjection,
+  topics: TopicProjection[],
+  readiness: TopicReadiness[],
+  regime: PaceRegime,
+  todayLocal: LocalDate,
+): boolean {
+  const introduced = new Set(
+    readiness.filter((r) => r.introduced).map((r) => r.topicId),
+  );
+  const pending = new Set(
+    topics.filter((t) => !t.archived && !introduced.has(t.id)).map((t) => t.id),
+  );
+
+  const scheduled = new Set<string>();
+  for (const entry of goal.planEntries) {
+    if (entry.planVersion !== goal.currentPlanVersion) continue;
+    if (!pending.has(entry.topicId)) continue;
+    scheduled.add(entry.topicId);
+    if (dayDiff(entry.plannedDate, todayLocal) > 0) return true;
+  }
+
+  return (
+    regime === "SLIPPING" &&
+    [...pending].some((topicId) => !scheduled.has(topicId))
+  );
 }
 
 /**
