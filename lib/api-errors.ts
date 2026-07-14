@@ -34,3 +34,13 @@ export function notFound() {
     { status: 404 },
   );
 }
+
+/** 503 for the AI touchpoints (§6.3, §8 #1): Gemini down / rate-limited /
+ *  malformed-after-retry / timeout / key absent. The stable envelope the
+ *  "two buttons break" toast renders — always `{ error, code }`. */
+export function aiUnavailable() {
+  return NextResponse.json(
+    { error: "AI service unavailable", code: "AI_UNAVAILABLE" },
+    { status: 503 },
+  );
+}
