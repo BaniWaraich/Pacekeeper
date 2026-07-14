@@ -3,7 +3,11 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MATERIAL_MAX, type AiStructureResponse } from "@/lib/validations";
+import {
+  MATERIAL_MAX,
+  TITLE_MAX,
+  type AiStructureResponse,
+} from "@/lib/validations";
 import { ApiError, fetchJson, uploadFile } from "../../fetch-json";
 
 const inputClass =
@@ -328,9 +332,12 @@ export function ImportView({
       <div className="flex items-center gap-2">
         {editing === node.key && editable ? (
           <>
+            {/* TITLE_MAX enforced at input: an over-limit title would 400
+                mid-confirm-sequence, after which edits are locked. */}
             <input
               className={inputClass}
               value={editTitle}
+              maxLength={TITLE_MAX}
               onChange={(e) => setEditTitle(e.target.value)}
               autoFocus
             />
@@ -459,6 +466,7 @@ export function ImportView({
               <input
                 className={inputClass}
                 placeholder="New topic"
+                maxLength={TITLE_MAX}
                 value={newTopic[draftModule.key] ?? ""}
                 onChange={(e) =>
                   setNewTopic((s) => ({
@@ -489,6 +497,7 @@ export function ImportView({
           <input
             className={inputClass}
             placeholder="New module"
+            maxLength={TITLE_MAX}
             value={newModule}
             onChange={(e) => setNewModule(e.target.value)}
           />
