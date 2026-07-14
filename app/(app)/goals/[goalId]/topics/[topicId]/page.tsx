@@ -40,12 +40,22 @@ export default async function TopicQuestionsPage({
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
           {topic.title}
         </h1>
-        <Link
-          href={`/goals/${goalId}`}
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Back to structure
-        </Link>
+        <span className="flex items-baseline gap-4">
+          {questions.length > 0 && (
+            <Link
+              href={`/goals/${goalId}/topics/${topicId}/session`}
+              className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              Start session
+            </Link>
+          )}
+          <Link
+            href={`/goals/${goalId}`}
+            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+          >
+            Back to structure
+          </Link>
+        </span>
       </header>
 
       <QuestionEditor
