@@ -1,11 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { TodayView } from "./today-view";
+import { DashboardView } from "./dashboard-view";
 
-/** The Today view (§5.4, §6.2) — the daily accountability unit. Data loads
- *  client-side through GET /api/goals/:id/today?tz= (§6 defines the route;
- *  the browser is the only place the user's timezone is knowable). */
-export default async function TodayPage() {
+/** The decision surface (SPEC 6.6): per-goal readiness + regime, computed on
+ *  read through GET /api/goals/:id/dashboard?tz= — never stored (invariant #3). */
+export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
 
@@ -13,10 +12,10 @@ export default async function TodayPage() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
       <header className="flex items-baseline justify-between">
         <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Today
+          Dashboard
         </h1>
       </header>
-      <TodayView />
+      <DashboardView />
     </main>
   );
 }
