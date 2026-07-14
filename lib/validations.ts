@@ -20,7 +20,7 @@ import { z } from "zod";
  * a bound is defined once, never repeated as a literal. */
 const TITLE_MAX = 120; // goal/module/topic titles AND AI-structure module/topic titles
 const NOTE_CONTENT_MAX = 10_000; // note content
-const MATERIAL_MAX = 100_000; // topic.material AND POST /api/ai/structure `material` (§6.3)
+export const MATERIAL_MAX = 100_000; // topic.material AND POST /api/ai/structure `material` (§6.3)
 const PROMPT_MAX = 2_000; // QuestionInput.prompt (§6.1)
 const BACK_MAX = 5_000; // flashcard.back (§6.1)
 const OPTIONS_MIN = 2; // MCQ options lower bound (§6.1)
