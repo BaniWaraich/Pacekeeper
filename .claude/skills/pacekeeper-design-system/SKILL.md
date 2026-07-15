@@ -57,8 +57,8 @@ stops** — hover energy comes from glow + `brightness-105`, never lighter color
 Rules:
 
 - Exactly **one** gradient in the system (the brand gradient). It appears on
-  the primary CTA (`btnPrimary`), the In-progress module rail, and hero
-  moments — nowhere else.
+  the primary CTA (`btnPrimary`), the In-progress rail on illustrative module
+  rows (landing page), and hero moments — nowhere else.
 - Regime/status colors come only from `readyFill` / `notReadyFill` / `TONE` /
   `REGIME_TONE`.
 - **Status is never conveyed by color alone.** Always pair with a number, an
@@ -157,17 +157,27 @@ view), `btnSecondary`, `btnDestructive`, `btnBase`, `actionClass`,
 Icon + label + tone via `REGIME_TONE`; labels "On pace" / "Slipping" /
 "Triage". Never render a regime by color alone or with ad-hoc markup.
 
-**`ModuleCard` four states** (spec — built during the /dashboard pass):
+**`ModuleCard`** (`app/(app)/module-card.tsx`) — the module container on
+readiness lists (dashboard, today): module title (h3) + one row per topic —
+inline `ReadinessRing` (`animate={false}`), topic title, state chip, and a
+quiz link (≥44px target). **Four topic states**, derived presentation-side
+via the exported `deriveTopicState` — never per-screen forks:
 
-| State | Treatment |
-|---|---|
-| Locked (not introduced) | muted surface, lock glyph, decoration dimmed — text stays AA, no hover affordance |
-| In-progress (introduced, readiness < 0.6) | 3px brand-gradient left rail + progress figure |
-| Ready (readiness ≥ 0.6) | default card + subtle hover lift |
-| Mastered (readiness ≥ 0.6, all questions strong) | `TONE.positive` tint + check glyph + one-time `animate-pulse-glow` on transition |
+| State | Derivation (precedence order) | Treatment |
+|---|---|---|
+| At risk | topic in TRIAGE `deferred` (wins over all others) | `TONE.danger` chip, circled-! glyph, label "At risk" |
+| Upcoming | `!introduced` | dimmed slate chip (text stays AA), lock glyph, label "Upcoming" |
+| Building | `introduced && notYetReady` | `TONE.warn` chip, clock glyph, label "Building" |
+| Strong | `introduced && !notYetReady` | `TONE.positive` chip, check glyph, one-time `motion-safe:animate-pop` on mount — the win state |
 
-State is **derived from existing engine fields** (`introduced`, `readiness`,
-TRIAGE `deferred` membership) — never new persisted state.
+State is **derived from existing engine fields** (`introduced`,
+`notYetReady`, TRIAGE `deferred` membership) — never new persisted state,
+never recomputed thresholds. Chips are non-interactive: icon + label + tone,
+never color alone.
+
+**`Countdown`** (`app/(app)/countdown.tsx`) — engine numbers only, no date
+math: `planProgress.daysUsable` as a `displayText` number ("N usable days
+left") + `examDate` verbatim; unplanned goals render the exam date alone.
 
 **MCQ options** (spec — built during the session pass): options are
 `<button>`s ≥44px tall (`min-h-11`); selected = indigo border +
