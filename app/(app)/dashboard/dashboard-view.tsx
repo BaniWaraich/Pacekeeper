@@ -2,6 +2,16 @@
 
 import Link from "next/link";
 import type { DashboardResponse } from "@/lib/engine-io";
+import {
+  Alert,
+  Card,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  TONE,
+  REGIME_TONE,
+  linkClass,
+} from "@/app/ui";
 import { percent, ReadinessBar } from "../readiness-bar";
 import { useGoalReads } from "../use-goal-reads";
 
@@ -13,63 +23,31 @@ import { useGoalReads } from "../use-goal-reads";
  * planVersion — a freshly confirmed v0 goal must read as "in effect").
  */
 
-const REGIME_BANNER: Record<string, string> = {
-  ON_PACE:
-    "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-100",
-  SLIPPING:
-    "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100",
-  TRIAGE:
-    "border-red-300 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100",
-};
-
 const rate = (x: number) => x.toFixed(1);
 
 export function DashboardView() {
   const { state, retry } = useGoalReads<DashboardResponse>("dashboard");
 
   if (state.status === "loading") {
-    return (
-      <div className="flex flex-col gap-4" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-48 animate-pulse rounded border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
-          />
-        ))}
-      </div>
-    );
+    return <Skeleton rows={3} height="h-52" />;
   }
 
   if (state.status === "error") {
     return (
-      <div className="flex flex-col items-start gap-3 rounded border border-red-300 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950">
-        <p className="text-sm text-red-900 dark:text-red-100">
-          Couldn&apos;t load the dashboard: {state.message}
-        </p>
-        <button
-          type="button"
-          onClick={retry}
-          className="rounded border border-red-300 px-3 py-1 text-sm text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-100 dark:hover:bg-red-900"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        message={`Couldn't load the dashboard: ${state.message}`}
+        onRetry={retry}
+      />
     );
   }
 
   if (state.reads.length === 0) {
     return (
-      <div className="rounded border border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">
-          No goals yet — nothing to measure.
-        </p>
-        <Link
-          href="/goals"
-          className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
+      <EmptyState title="No goals yet — nothing to measure.">
+        <Link href="/goals" className={linkClass}>
           Create your first goal →
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
@@ -84,12 +62,12 @@ export function DashboardView() {
 
 function GoalCard({ data }: { data: DashboardResponse }) {
   return (
-    <section className="flex flex-col gap-4 rounded border border-zinc-300 px-4 py-4 dark:border-zinc-700">
+    <Card className="flex flex-col gap-4">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
           {data.title}
         </h2>
-        <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+        <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
           exam {data.examDate}
           {data.planned &&
             ` · ${data.planProgress.daysUsable} usable ${
@@ -99,7 +77,7 @@ function GoalCard({ data }: { data: DashboardResponse }) {
       </header>
 
       {data.planned ? <PlannedBody data={data} /> : <UnplannedBody data={data} />}
-    </section>
+    </Card>
   );
 }
 
@@ -109,27 +87,21 @@ function UnplannedBody({
   data: Extract<DashboardResponse, { planned: false }>;
 }) {
   return (
-    <div className="rounded border border-dashed border-zinc-300 px-4 py-6 text-center dark:border-zinc-700">
-      <p className="text-sm text-zinc-900 dark:text-zinc-50">
-        No plan yet — pace can&apos;t be measured.
-      </p>
+    <EmptyState title="No plan yet — pace can't be measured.">
       <Link
         href={`/goals/${data.goalId}/plan`}
-        className="mt-2 inline-block text-sm font-medium text-zinc-900 underline hover:text-zinc-600 dark:text-zinc-50 dark:hover:text-zinc-300"
+        className={`inline-block ${linkClass}`}
       >
         Create your study plan →
       </Link>
-      <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         or{" "}
-        <Link
-          href={`/goals/${data.goalId}`}
-          className="underline hover:text-zinc-900 dark:hover:text-zinc-100"
-        >
+        <Link href={`/goals/${data.goalId}`} className={linkClass}>
           keep building structure
         </Link>{" "}
         first.
       </p>
-    </div>
+    </EmptyState>
   );
 }
 
@@ -148,8 +120,8 @@ function PlannedBody({
 
   return (
     <>
-      <div className={`rounded border px-4 py-3 ${REGIME_BANNER[regime.regime]}`}>
-        <p className="text-sm">
+      <Alert tone={REGIME_TONE[regime.regime]}>
+        <p>
           {regime.regime === "ON_PACE" && (
             <>
               <strong>On pace.</strong> {planProgress.introducedTopics} of{" "}
@@ -206,11 +178,13 @@ function PlannedBody({
               </>
             ))}
         </p>
-      </div>
+      </Alert>
 
       {regime.regime === "TRIAGE" && (regime.deferred?.length ?? 0) > 0 && (
-        <div className="flex flex-col gap-2 rounded border border-red-300 px-4 py-3 dark:border-red-900">
-          <h3 className="text-xs font-semibold uppercase text-red-900 dark:text-red-100">
+        <div
+          className={`flex flex-col gap-2 rounded-lg border px-4 py-3 ${TONE.danger}`}
+        >
+          <h3 className="text-xs font-semibold uppercase tracking-wide">
             At risk — won&apos;t be reached at the current cap
           </h3>
           <ul className="flex flex-col gap-1.5">
@@ -219,10 +193,8 @@ function PlannedBody({
                 key={topic.topicId}
                 className="flex items-center justify-between gap-3"
               >
-                <span className="truncate text-sm text-zinc-900 dark:text-zinc-50">
-                  {topic.title}
-                </span>
-                <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+                <span className="truncate text-sm">{topic.title}</span>
+                <span className="shrink-0 text-xs opacity-80">
                   readiness {percent(topic.readiness)}
                 </span>
               </li>
@@ -232,11 +204,11 @@ function PlannedBody({
       )}
 
       <div className="flex items-center gap-3">
-        <span className="w-28 shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+        <span className="w-28 shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">
           Goal readiness
         </span>
         <ReadinessBar value={data.goalReadiness} />
-        <span className="w-10 shrink-0 text-right text-xs text-zinc-600 dark:text-zinc-400">
+        <span className="w-10 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
           {percent(data.goalReadiness)}
         </span>
       </div>
@@ -245,18 +217,18 @@ function PlannedBody({
         {data.topicReadiness.map((topic) => (
           <li key={topic.topicId} className="flex items-center gap-3">
             <span
-              className="w-28 shrink-0 truncate text-xs text-zinc-900 dark:text-zinc-50"
+              className="w-28 shrink-0 truncate text-xs text-slate-900 dark:text-slate-50"
               title={`${topic.title} (${topic.moduleTitle})`}
             >
               {topic.title}
             </span>
             <ReadinessBar value={topic.readiness} />
-            <span className="w-10 shrink-0 text-right text-xs text-zinc-600 dark:text-zinc-400">
+            <span className="w-10 shrink-0 text-right text-xs text-slate-500 dark:text-slate-400">
               {percent(topic.readiness)}
             </span>
             <Link
               href={`/goals/${data.goalId}/topics/${topic.topicId}/session`}
-              className="shrink-0 text-xs text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className={`shrink-0 text-xs ${linkClass}`}
             >
               Quiz this now
             </Link>
