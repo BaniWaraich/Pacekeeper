@@ -11,6 +11,7 @@
  * red, kept semantic and defined once here.
  */
 import type { ReactNode } from "react";
+import type { PaceRegime } from "@/lib/engine/types";
 
 const cx = (...parts: (string | false | undefined)[]) =>
   parts.filter(Boolean).join(" ");
@@ -235,6 +236,58 @@ export function Skeleton({
         />
       ))}
     </div>
+  );
+}
+
+/** Icon + label + tone — never color alone. The only way to chip a regime. */
+const REGIME_BADGE: Record<PaceRegime, { label: string; path: ReactNode }> = {
+  ON_PACE: {
+    label: "On pace",
+    // trending-up
+    path: <path d="M2 11l4-4 3 3 5-6M10 4h4v4" />,
+  },
+  SLIPPING: {
+    label: "Slipping",
+    // downward drift
+    path: <path d="M2 5l4 4 3-3 5 6M10 12h4V8" />,
+  },
+  TRIAGE: {
+    label: "Triage",
+    // alert triangle
+    path: <path d="M8 2L1 14h14L8 2zm0 5v3m0 2v.5" />,
+  },
+};
+
+export function RegimeBadge({
+  regime,
+  className,
+}: {
+  regime: PaceRegime;
+  className?: string;
+}) {
+  const { label, path } = REGIME_BADGE[regime];
+  return (
+    <span
+      className={cx(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+        TONE[REGIME_TONE[regime]],
+        className,
+      )}
+    >
+      <svg
+        viewBox="0 0 16 16"
+        className="h-3.5 w-3.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.75}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        {path}
+      </svg>
+      {label}
+    </span>
   );
 }
 
