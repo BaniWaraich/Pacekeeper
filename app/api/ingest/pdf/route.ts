@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 import {
   requireUser,
   UnauthorizedError,
@@ -51,19 +51,17 @@ export async function POST(request: NextRequest) {
     }
 
     let text: string;
-    const parser = new PDFParse({ data: bytes });
     try {
-      const result = await parser.getText();
+      const pdf = await getDocumentProxy(bytes);
+      const result = await extractText(pdf, { mergePages: true });
       text = result.text?.trim() ?? "";
     } catch {
       return badRequest("Could not read PDF", "PDF_PARSE_FAILED");
-    } finally {
-      await parser.destroy();
     }
 
     if (text.length === 0) {
-      // No extractable text (e.g. a scanned/image-only PDF).
-      return badRequest("No extractable text in PDF", "PDF_PARSE_FAILED");
+      // Parsed fine but no extractable text (e.g. a scanned/image-only PDF).
+      return badRequest("No extractable text in PDF", "NO_TEXT_EXTRACTED");
     }
     if (text.length > MAX_TEXT_LENGTH) {
       return badRequest("Extracted text is too long", "TEXT_TOO_LONG");
