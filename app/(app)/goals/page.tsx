@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader, pageClass, cardClass } from "@/app/ui";
 import { GoalForm } from "./goal-form";
 
 export default async function GoalsPage() {
@@ -21,30 +22,23 @@ export default async function GoalsPage() {
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Goals
-        </h1>
-        <Link
-          href="/today"
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Today
-        </Link>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title="Goals"
+        subtitle="Each goal is a subject with an exam date. Pick one to build its structure, or start a new one below."
+      />
 
       <ul className="flex flex-col gap-2">
         {goals.map((goal) => (
           <li key={goal.id}>
             <Link
               href={`/goals/${goal.id}`}
-              className="flex items-baseline justify-between rounded border border-zinc-300 px-4 py-3 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+              className={`${cardClass} flex items-baseline justify-between gap-3 px-4 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:hover:border-slate-700 dark:hover:bg-slate-800/50`}
             >
-              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+              <span className="text-sm font-medium text-slate-900 dark:text-slate-50">
                 {goal.title}
               </span>
-              <span className="text-xs text-zinc-600 dark:text-zinc-400">
+              <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                 exam {goal.examDate.toISOString().slice(0, 10)} ·{" "}
                 {goal.modules.length} modules ·{" "}
                 {goal.modules.reduce((n, m) => n + m.topics.length, 0)} topics
@@ -53,7 +47,7 @@ export default async function GoalsPage() {
           </li>
         ))}
         {goals.length === 0 && (
-          <li className="text-sm text-zinc-600 dark:text-zinc-400">
+          <li className="text-sm text-slate-500 dark:text-slate-400">
             No goals yet — create one below.
           </li>
         )}

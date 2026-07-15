@@ -8,14 +8,13 @@ import {
   TITLE_MAX,
   type AiStructureResponse,
 } from "@/lib/validations";
+import {
+  actionClass,
+  btnPrimary as buttonClass,
+  inputClass,
+} from "@/app/ui";
 import { ApiError, fetchJson, uploadFile } from "../../fetch-json";
 
-const inputClass =
-  "rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
-const buttonClass =
-  "rounded border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
-const actionClass =
-  "text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-500 dark:hover:text-zinc-100";
 const errorClass = "text-xs text-red-600 dark:text-red-400";
 
 type DraftTopic = { key: number; title: string; createdId?: string };
@@ -217,11 +216,11 @@ export function ImportView({
 
   if (phase.phase === "unavailable") {
     return (
-      <section className="flex flex-col gap-3 rounded border border-zinc-300 p-6 dark:border-zinc-700">
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+      <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
           AI assist is unavailable
         </h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           The structure proposal service isn&apos;t reachable right now. You
           can build the structure manually — everything else works without AI.
         </p>
@@ -246,8 +245,9 @@ export function ImportView({
     return (
       <section className="flex flex-col gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">
-            Paste your notes, or extract them from a PDF below
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            Paste your course material — a syllabus, lecture notes, or a
+            textbook chapter. AI reads it to propose modules and topics.
           </span>
           <textarea
             className={`${inputClass} min-h-48`}
@@ -259,7 +259,7 @@ export function ImportView({
         </label>
         <p
           className={
-            overLimit ? errorClass : "text-xs text-zinc-500 dark:text-zinc-500"
+            overLimit ? errorClass : "text-xs text-slate-500 dark:text-slate-400"
           }
         >
           {material.length.toLocaleString()} /{" "}
@@ -268,7 +268,7 @@ export function ImportView({
 
         <div className="flex items-center gap-3">
           <label className={actionClass}>
-            {pdfBusy ? "Extracting PDF…" : "Upload a PDF (≤10 MB)"}
+            {pdfBusy ? "Extracting PDF…" : "Or extract text from a PDF (≤10 MB)"}
             <input
               type="file"
               accept="application/pdf"
@@ -292,7 +292,7 @@ export function ImportView({
             }
             onClick={propose}
           >
-            {proposing ? "Asking the AI…" : "Propose structure"}
+            {proposing ? "Asking the AI…" : "Propose modules & topics"}
           </button>
         </div>
       </section>
@@ -310,7 +310,7 @@ export function ImportView({
   const createdMark = (createdId?: string) =>
     createdId && (
       <span
-        className="text-xs text-green-700 dark:text-green-400"
+        className="text-xs font-medium text-emerald-700 dark:text-emerald-400"
         title="Already created"
       >
         ✓ created
@@ -356,8 +356,8 @@ export function ImportView({
             <span
               className={
                 strong
-                  ? "text-sm font-semibold text-zinc-900 dark:text-zinc-50"
-                  : "text-sm text-zinc-700 dark:text-zinc-300"
+                  ? "text-sm font-semibold text-slate-900 dark:text-slate-50"
+                  : "text-sm text-slate-700 dark:text-slate-300"
               }
             >
               {node.title}
@@ -401,7 +401,7 @@ export function ImportView({
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         This is a draft — nothing is saved until you confirm. Rename, reorder,
         delete, or add before confirming.
       </p>
@@ -409,7 +409,7 @@ export function ImportView({
       {drafts.map((draftModule, mi) => (
         <div
           key={draftModule.key}
-          className="flex flex-col gap-2 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+          className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
         >
           {titleRow(
             draftModule,
@@ -508,14 +508,14 @@ export function ImportView({
       )}
 
       {phase.phase === "confirming" && (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+        <p className="text-sm text-slate-600 dark:text-slate-400">
           Creating {Math.min(phase.done + 1, phase.total)}/{phase.total}…
         </p>
       )}
 
       {phase.phase === "confirm-failed" && (
-        <div className="flex flex-col gap-2 rounded border border-red-300 p-4 dark:border-red-900">
-          <p className="text-sm text-zinc-900 dark:text-zinc-50">
+        <div className="flex flex-col gap-2 rounded-lg border border-red-300 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
+          <p className="text-sm text-red-900 dark:text-red-100">
             Creation stopped partway: {phase.done} of {phase.total} items were
             created (marked ✓ above) and now exist in your structure. The rest
             were not.
@@ -527,7 +527,7 @@ export function ImportView({
             </button>
             <Link
               href={`/goals/${goalId}`}
-              className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="text-sm font-medium text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400"
             >
               Review the partial structure in the builder
             </Link>

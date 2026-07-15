@@ -2,6 +2,14 @@
 
 import Link from "next/link";
 import type { TodayResponse } from "@/lib/engine-io";
+import {
+  Badge,
+  Card,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  linkClass,
+} from "@/app/ui";
 import { useGoalReads, type GoalRead } from "../use-goal-reads";
 
 /**
@@ -13,32 +21,15 @@ export function TodayView() {
   const { state, retry } = useGoalReads<TodayResponse>("today");
 
   if (state.status === "loading") {
-    return (
-      <div className="flex flex-col gap-3" aria-busy="true">
-        {[0, 1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-12 animate-pulse rounded border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
-          />
-        ))}
-      </div>
-    );
+    return <Skeleton rows={4} height="h-14" />;
   }
 
   if (state.status === "error") {
     return (
-      <div className="flex flex-col items-start gap-3 rounded border border-red-300 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950">
-        <p className="text-sm text-red-900 dark:text-red-100">
-          Couldn&apos;t load today&apos;s session: {state.message}
-        </p>
-        <button
-          type="button"
-          onClick={retry}
-          className="rounded border border-red-300 px-3 py-1 text-sm text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-100 dark:hover:bg-red-900"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        message={`Couldn't load today's session: ${state.message}`}
+        onRetry={retry}
+      />
     );
   }
 
@@ -46,15 +37,11 @@ export function TodayView() {
 
   if (reads.length === 0) {
     return (
-      <div className="rounded border border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">No goals yet.</p>
-        <Link
-          href="/goals"
-          className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
+      <EmptyState title="No goals yet.">
+        <Link href="/goals" className={linkClass}>
           Create your first goal →
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
@@ -63,25 +50,19 @@ export function TodayView() {
 
   if (totalReviews + totalNew === 0) {
     return (
-      <div className="rounded border border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">
-          Nothing due today — you&apos;re clear.
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
+      <EmptyState title="Nothing due today — you're clear.">
+        <Link href="/dashboard" className={linkClass}>
           See where you stand →
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
         {totalReviews} {totalReviews === 1 ? "review" : "reviews"} · {totalNew}{" "}
-        new {totalNew === 1 ? "topic" : "topics"}
+        new {totalNew === 1 ? "topic" : "topics"} today
       </p>
       {reads
         .filter((r) => r.data.reviews.length + r.data.newTopics.length > 0)
@@ -97,30 +78,30 @@ function GoalSection({ read }: { read: GoalRead<TodayResponse> }) {
   const sessionHref = (topicId: string) =>
     `/goals/${goalId}/topics/${topicId}/session`;
 
+  const rowClass =
+    "flex items-baseline justify-between gap-3 rounded-md border border-slate-200 px-4 py-3 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-800 dark:hover:border-slate-700 dark:hover:bg-slate-800/50";
+
   return (
-    <section className="flex flex-col gap-2">
-      <h2 className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-        {title}
-        <span className="ml-2 text-xs font-normal text-zinc-600 dark:text-zinc-400">
+    <Card className="flex flex-col gap-3">
+      <h2 className="flex items-baseline justify-between gap-3">
+        <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+          {title}
+        </span>
+        <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
           {data.reviews.length} due · {data.newTopics.length} new
         </span>
       </h2>
       <ul className="flex flex-col gap-2">
         {data.newTopics.map((topic) => (
           <li key={topic.topicId}>
-            <Link
-              href={sessionHref(topic.topicId)}
-              className="flex items-baseline justify-between gap-3 rounded border border-zinc-300 px-4 py-3 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-            >
+            <Link href={sessionHref(topic.topicId)} className={rowClass}>
               <span className="flex min-w-0 items-baseline gap-2">
-                <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-50 dark:bg-zinc-50 dark:text-zinc-900">
-                  New
-                </span>
-                <span className="truncate text-sm text-zinc-900 dark:text-zinc-50">
+                <Badge tone="accent">New</Badge>
+                <span className="truncate text-sm text-slate-900 dark:text-slate-50">
                   {topic.title}
                 </span>
               </span>
-              <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+              <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                 {topic.moduleTitle} · planned {topic.plannedDate}
               </span>
             </Link>
@@ -128,25 +109,23 @@ function GoalSection({ read }: { read: GoalRead<TodayResponse> }) {
         ))}
         {data.reviews.map((review) => (
           <li key={review.questionId}>
-            <Link
-              href={sessionHref(review.topicId)}
-              className="flex items-baseline justify-between gap-3 rounded border border-zinc-300 px-4 py-3 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
-            >
+            <Link href={sessionHref(review.topicId)} className={rowClass}>
               <span className="flex min-w-0 items-baseline gap-2">
-                <span className="rounded border border-zinc-300 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+                <Badge tone="outline">
                   {review.type === "MCQ" ? "MCQ" : "Card"}
-                </span>
-                <span className="truncate text-sm text-zinc-900 dark:text-zinc-50">
+                </Badge>
+                <span className="truncate text-sm text-slate-900 dark:text-slate-50">
                   {review.prompt}
                 </span>
               </span>
-              <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
-                {review.topicTitle} · strength {Math.round(review.strength * 100)}%
+              <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                {review.topicTitle} · strength{" "}
+                {Math.round(review.strength * 100)}%
               </span>
             </Link>
           </li>
         ))}
       </ul>
-    </section>
+    </Card>
   );
 }

@@ -1,6 +1,11 @@
 "use client";
 
 import type { QuestionInput } from "@/lib/validations";
+import {
+  actionClass as uiActionClass,
+  btnPrimary,
+  inputClass as uiInputClass,
+} from "@/app/ui";
 
 /**
  * Shared question form fields — one source of truth for the type-specific
@@ -9,14 +14,14 @@ import type { QuestionInput } from "@/lib/validations";
  * (step 13): both edit the same FormState and serialize through the same
  * toQuestionInput, so a draft is edited with exactly the manual editor's
  * affordances.
+ *
+ * The class constants below are re-exported from the shared design system so
+ * the editor and draft rows inherit the app-wide button/input treatment.
  */
 
-export const inputClass =
-  "rounded border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
-export const buttonClass =
-  "rounded border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
-export const actionClass =
-  "text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-500 dark:hover:text-zinc-100";
+export const inputClass = uiInputClass;
+export const buttonClass = btnPrimary;
+export const actionClass = uiActionClass;
 
 export type FormState = {
   type: "MCQ" | "FLASHCARD";
@@ -95,7 +100,7 @@ export function QuestionFields({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-3 text-sm text-zinc-700 dark:text-zinc-300">
+      <div className="flex gap-3 text-sm text-slate-700 dark:text-slate-300">
         {(["MCQ", "FLASHCARD"] as const).map((t) => (
           <label key={t} className="flex items-center gap-1">
             <input

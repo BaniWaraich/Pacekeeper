@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MATERIAL_MAX } from "@/lib/validations";
+import { Card } from "@/app/ui";
 import { fetchJson } from "../../../fetch-json";
 import { buttonClass, inputClass } from "./question-fields";
 
@@ -49,12 +50,13 @@ export function MaterialEditor({
   }
 
   return (
-    <section className="flex flex-col gap-2 rounded border border-zinc-300 p-4 dark:border-zinc-700">
-      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+    <Card className="flex flex-col gap-2">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
         Material
       </h2>
-      <p className="text-xs text-zinc-600 dark:text-zinc-400">
-        The source text AI question drafting works from.
+      <p className="text-xs text-slate-600 dark:text-slate-400">
+        The source text AI drafts this topic&apos;s questions from. Save it,
+        then use Draft with AI below.
       </p>
       <textarea
         className={`${inputClass} min-h-32`}
@@ -70,7 +72,7 @@ export function MaterialEditor({
         className={
           overLimit
             ? "text-xs text-red-600 dark:text-red-400"
-            : "text-xs text-zinc-500 dark:text-zinc-500"
+            : "text-xs text-slate-500 dark:text-slate-400"
         }
       >
         {text.length.toLocaleString()} / {MATERIAL_MAX.toLocaleString()}{" "}
@@ -88,11 +90,11 @@ export function MaterialEditor({
           {busy ? "Saving…" : "Save material"}
         </button>
         {dirty && empty && (
-          <span className="text-xs text-zinc-500 dark:text-zinc-500">
+          <span className="text-xs text-slate-500 dark:text-slate-400">
             Material can&apos;t be saved empty.
           </span>
         )}
       </div>
-    </section>
+    </Card>
   );
 }

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader, pageClass, linkClass } from "@/app/ui";
 import { QuizSession, type SessionQuestion } from "./quiz-session";
 
 /**
@@ -63,18 +64,18 @@ export default async function SessionPage({
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Study: {topic.title}
-        </h1>
-        <Link
-          href={`/goals/${goalId}/topics/${topicId}`}
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Back to topic
-        </Link>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title={`Study: ${topic.title}`}
+        action={
+          <Link
+            href={`/goals/${goalId}/topics/${topicId}`}
+            className={linkClass}
+          >
+            Back to topic
+          </Link>
+        }
+      />
 
       <QuizSession
         goalId={goalId}

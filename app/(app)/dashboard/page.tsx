@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { PageHeader, pageClass } from "@/app/ui";
 import { DashboardView } from "./dashboard-view";
 
 /** The decision surface (SPEC 6.6): per-goal readiness + regime, computed on
@@ -9,12 +10,11 @@ export default async function DashboardPage() {
   if (!session?.user?.id) redirect("/login");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Dashboard
-        </h1>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Where every goal stands against its exam date — the honest version."
+      />
       <DashboardView />
     </main>
   );

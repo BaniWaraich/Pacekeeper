@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader, pageClass, linkClass } from "@/app/ui";
 import { QuestionEditor, type QuestionRow } from "./question-editor";
 import { TopicAuthoring } from "./topic-authoring";
 
@@ -36,28 +37,25 @@ export default async function TopicQuestionsPage({
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          {topic.title}
-        </h1>
-        <span className="flex items-baseline gap-4">
-          {questions.length > 0 && (
-            <Link
-              href={`/goals/${goalId}/topics/${topicId}/session`}
-              className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-            >
-              Start session
+    <main className={pageClass}>
+      <PageHeader
+        title={topic.title}
+        action={
+          <span className="flex items-baseline gap-4">
+            {questions.length > 0 && (
+              <Link
+                href={`/goals/${goalId}/topics/${topicId}/session`}
+                className={linkClass}
+              >
+                Start session
+              </Link>
+            )}
+            <Link href={`/goals/${goalId}`} className={linkClass}>
+              Back to structure
             </Link>
-          )}
-          <Link
-            href={`/goals/${goalId}`}
-            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Back to structure
-          </Link>
-        </span>
-      </header>
+          </span>
+        }
+      />
 
       <TopicAuthoring
         topicId={topic.id}

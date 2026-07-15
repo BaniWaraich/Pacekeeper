@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { PageHeader, pageClass } from "@/app/ui";
 import { TodayView } from "./today-view";
 
 /** The Today view (§5.4, §6.2) — the daily accountability unit. Data loads
@@ -10,12 +11,11 @@ export default async function TodayPage() {
   if (!session?.user?.id) redirect("/login");
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Today
-        </h1>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title="Today"
+        subtitle="Your reviews and new topics for the day — one place, in order."
+      />
       <TodayView />
     </main>
   );

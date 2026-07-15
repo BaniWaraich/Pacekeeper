@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Badge, btnSecondary } from "@/app/ui";
 import { fetchJson } from "../../../fetch-json";
 import {
   QuestionFields,
@@ -100,11 +101,11 @@ export function QuestionEditor({
         {questions.map((q) => (
           <li
             key={q.id}
-            className="flex flex-col gap-1 rounded border border-zinc-300 p-3 dark:border-zinc-700"
+            className="flex flex-col gap-1 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
           >
             <div className="flex items-baseline gap-2">
-              <span className="text-xs uppercase text-zinc-500">{q.type}</span>
-              <span className="text-sm text-zinc-900 dark:text-zinc-50">
+              <Badge tone="outline">{q.type}</Badge>
+              <span className="text-sm text-slate-900 dark:text-slate-50">
                 {q.prompt}
               </span>
               <span className="ml-auto flex gap-2">
@@ -122,7 +123,7 @@ export function QuestionEditor({
               </span>
             </div>
             {"options" in q.payload ? (
-              <ol className="ml-5 list-decimal text-xs text-zinc-600 dark:text-zinc-400">
+              <ol className="ml-5 list-decimal text-xs text-slate-600 dark:text-slate-400">
                 {q.payload.options.map((option, i) => (
                   <li key={i}>
                     {option}
@@ -133,14 +134,14 @@ export function QuestionEditor({
                 ))}
               </ol>
             ) : (
-              <p className="ml-5 text-xs text-zinc-600 dark:text-zinc-400">
+              <p className="ml-5 text-xs text-slate-600 dark:text-slate-400">
                 {q.payload.back}
               </p>
             )}
           </li>
         ))}
         {questions.length === 0 && (
-          <li className="text-sm text-zinc-600 dark:text-zinc-400">
+          <li className="text-sm text-slate-500 dark:text-slate-400">
             No questions yet.
           </li>
         )}
@@ -148,9 +149,9 @@ export function QuestionEditor({
 
       <form
         onSubmit={submit}
-        className="flex flex-col gap-3 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+        className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
       >
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
           {editingId ? "Edit question" : "New question"}
         </h2>
 
@@ -166,7 +167,7 @@ export function QuestionEditor({
           {editingId && (
             <button
               type="button"
-              className={buttonClass}
+              className={btnSecondary}
               onClick={() => {
                 setEditingId(null);
                 setForm(emptyForm);

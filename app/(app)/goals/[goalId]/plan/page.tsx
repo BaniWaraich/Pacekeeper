@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader, pageClass, linkClass } from "@/app/ui";
 import { PlanReview } from "./plan-review";
 
 /**
@@ -27,23 +28,16 @@ export default async function GoalPlanPage({
   if (!goal) notFound();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Study plan
-          </h1>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            {goal.title} — the engine proposes, you confirm
-          </p>
-        </div>
-        <Link
-          href="/dashboard"
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Back to dashboard
-        </Link>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title="Study plan"
+        subtitle={`${goal.title} — the engine proposes, you confirm.`}
+        action={
+          <Link href="/dashboard" className={linkClass}>
+            Back to dashboard
+          </Link>
+        }
+      />
 
       <PlanReview goalId={goal.id} />
     </main>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { actionClass, inputClass, linkClass } from "@/app/ui";
 import { fetchJson } from "../fetch-json";
 
 type TopicNode = { id: string; title: string; orderIndex: number };
@@ -13,11 +14,6 @@ type ModuleNode = {
   topics: TopicNode[];
 };
 type GoalNode = { id: string; modules: ModuleNode[] };
-
-const inputClass =
-  "rounded border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50";
-const actionClass =
-  "text-xs text-zinc-500 hover:text-zinc-900 disabled:opacity-40 dark:text-zinc-500 dark:hover:text-zinc-100";
 
 /**
  * Goal → modules → topics builder. All mutations go through the §6 API
@@ -148,12 +144,12 @@ export function StructureBuilder({ goal }: { goal: GoalNode }) {
       {goal.modules.map((module, mi) => (
         <div
           key={module.id}
-          className="flex flex-col gap-2 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+          className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
         >
           {titleRow(
             "modules",
             module,
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="text-sm font-semibold text-slate-900 dark:text-slate-50">
               {module.title}
             </span>,
             goal.modules,
@@ -168,7 +164,7 @@ export function StructureBuilder({ goal }: { goal: GoalNode }) {
                   topic,
                   <Link
                     href={`/goals/${goal.id}/topics/${topic.id}`}
-                    className="text-sm text-zinc-700 underline hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100"
+                    className={`text-sm ${linkClass}`}
                   >
                     {topic.title}
                   </Link>,
