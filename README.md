@@ -2,6 +2,8 @@
 
 Set a goal and a date. PaceKeeper builds your study plan, quizzes you daily, and tells you the truth about whether you're on track.
 
+**Live demo:** https://pacekeeper-livid.vercel.app (see [Demo account](#demo-account) below)
+
 A deadline-aware spaced-repetition study tool: goals → modules → topics → questions (MCQs + flashcards), a daily Today view driven by a deterministic scheduling engine, and honest pace tracking with slip recalibration and triage.
 
 ## Stack
@@ -19,6 +21,7 @@ cp .env.example .env   # then fill in DATABASE_URL (Neon pooled), AUTH_SECRET, e
 
 # Database
 pnpm db:migrate
+pnpm db:seed        # optional: seeds the demo account with realistic mid-plan data
 
 # Run
 pnpm dev
@@ -35,6 +38,7 @@ The app is fully usable without a `GEMINI_API_KEY` — AI features degrade to th
 | `pnpm test` | Engine unit tests (Vitest) |
 | `pnpm lint` | ESLint |
 | `pnpm db:migrate` | Prisma migrations |
+| `pnpm db:seed` | Reset and reseed the demo account |
 | `pnpm db:studio` | Prisma Studio |
 
 ## Documentation
@@ -45,4 +49,9 @@ The app is fully usable without a `GEMINI_API_KEY` — AI features degrade to th
 
 ## Demo account
 
-_Seeded demo credentials will be added before submission._
+Log in at https://pacekeeper-livid.vercel.app with:
+
+- **Email:** `demo@pacekeeper.dev`
+- **Password:** `pacekeeper-demo`
+
+The account is seeded mid-plan with a goal, modules, topics, and quiz history, so the dashboard, Today view, and pace tracking are all populated. Running `pnpm db:seed` resets it to this state (dates in the fixtures are relative to "today", so the plan always looks current).
