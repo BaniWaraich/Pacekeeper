@@ -7,6 +7,7 @@ import {
   questionInputSchema,
   type AiQuestionsResponse,
 } from "@/lib/validations";
+import { Card } from "@/app/ui";
 import { ApiError, fetchJson } from "../../../fetch-json";
 import {
   QuestionFields,
@@ -139,15 +140,15 @@ export function DraftPanel({
   const includedCount = rows.filter((r) => r.included).length;
 
   return (
-    <section className="flex flex-col gap-3 rounded border border-zinc-300 p-4 dark:border-zinc-700">
-      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+    <Card className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
         Draft questions with AI
       </h2>
 
       {(panel.s === "idle" || panel.s === "loading") && (
         <>
-          <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
               How many
               <input
                 type="number"
@@ -171,7 +172,7 @@ export function DraftPanel({
               {panel.s === "loading" ? "Asking the AI…" : "Draft with AI"}
             </button>
             {materialDirty && (
-              <span className="text-xs text-zinc-500 dark:text-zinc-500">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
                 Save material first — drafting reads the saved version.
               </span>
             )}
@@ -186,7 +187,7 @@ export function DraftPanel({
 
       {panel.s === "unavailable" && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             AI assist is unavailable right now. You can write questions by
             hand in the editor below — it&apos;s the same write path.
           </p>
@@ -203,7 +204,7 @@ export function DraftPanel({
 
       {panel.s === "no-material" && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             This topic has no material to draft from. Add material above and
             save it, then try again.
           </p>
@@ -220,7 +221,7 @@ export function DraftPanel({
 
       {panel.s === "empty" && (
         <div className="flex flex-col gap-2">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
             The AI returned no usable questions. Try again, or write them by
             hand in the editor below.
           </p>
@@ -237,7 +238,7 @@ export function DraftPanel({
 
       {panel.s === "reviewing" && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             These are drafts — nothing is saved until you confirm. Edit each
             one, untick any you don&apos;t want.
           </p>
@@ -246,13 +247,13 @@ export function DraftPanel({
             {rows.map((row) => (
               <li
                 key={row.key}
-                className={`flex flex-col gap-2 rounded border p-3 ${
+                className={`flex flex-col gap-2 rounded-lg border p-3 ${
                   row.included
-                    ? "border-zinc-300 dark:border-zinc-700"
-                    : "border-zinc-200 opacity-60 dark:border-zinc-800"
+                    ? "border-slate-200 dark:border-slate-700"
+                    : "border-slate-200 opacity-60 dark:border-slate-800"
                 }`}
               >
-                <label className="flex items-center gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
                   <input
                     type="checkbox"
                     checked={row.included}
@@ -304,6 +305,6 @@ export function DraftPanel({
           </div>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

@@ -8,6 +8,15 @@ import type {
   RecalibrateResponse,
   TriagedTopicItem,
 } from "@/lib/engine-io";
+import {
+  Alert,
+  EmptyState,
+  ErrorState,
+  Skeleton,
+  TONE,
+  btnPrimary,
+  linkClass,
+} from "@/app/ui";
 import { ReadinessBar, percent } from "../../../readiness-bar";
 import { ApiError, fetchJson } from "../../fetch-json";
 
@@ -101,32 +110,15 @@ export function PlanReview({ goalId }: { goalId: string }) {
   };
 
   if (state.status === "loading") {
-    return (
-      <div className="flex flex-col gap-3" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <div
-            key={i}
-            className="h-16 animate-pulse rounded border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
-          />
-        ))}
-      </div>
-    );
+    return <Skeleton rows={3} height="h-16" />;
   }
 
   if (state.status === "error") {
     return (
-      <div className="flex flex-col items-start gap-3 rounded border border-red-300 bg-red-50 px-4 py-3 dark:border-red-900 dark:bg-red-950">
-        <p className="text-sm text-red-900 dark:text-red-100">
-          Couldn&apos;t compute the proposal: {state.message}
-        </p>
-        <button
-          type="button"
-          onClick={reload}
-          className="rounded border border-red-300 px-3 py-1 text-sm text-red-900 hover:bg-red-100 dark:border-red-800 dark:text-red-100 dark:hover:bg-red-900"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorState
+        message={`Couldn't compute the proposal: ${state.message}`}
+        onRetry={reload}
+      />
     );
   }
 
@@ -134,43 +126,31 @@ export function PlanReview({ goalId }: { goalId: string }) {
 
   if (proposal.mode === "ON_PACE") {
     return (
-      <div className="rounded border border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">
-          You&apos;re on pace — nothing to recalibrate.
-        </p>
-        <Link
-          href="/dashboard"
-          className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
+      <EmptyState title="You're on pace — nothing to recalibrate.">
+        <Link href="/dashboard" className={linkClass}>
           See where you stand →
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
   if (proposal.mode === "INITIAL" && proposal.proposedEntries.length === 0) {
     return (
-      <div className="rounded border border-zinc-300 px-4 py-8 text-center dark:border-zinc-700">
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">
-          No topics to schedule yet.
-        </p>
-        <Link
-          href={`/goals/${goalId}`}
-          className="mt-2 inline-block text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
+      <EmptyState title="No topics to schedule yet.">
+        <Link href={`/goals/${goalId}`} className={linkClass}>
           Add modules and topics first →
         </Link>
-      </div>
+      </EmptyState>
     );
   }
 
   return (
     <div className="flex flex-col gap-4">
       {stale && (
-        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          Your plan changed since this proposal was computed — review the
-          fresh proposal below.
-        </div>
+        <Alert tone="warn">
+          Your plan changed since this proposal was computed — review the fresh
+          proposal below.
+        </Alert>
       )}
 
       <ProposalBody proposal={proposal} />
@@ -180,17 +160,17 @@ export function PlanReview({ goalId }: { goalId: string }) {
           type="button"
           onClick={() => void confirm()}
           disabled={confirming || proposal.proposedEntries.length === 0}
-          className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className={btnPrimary}
         >
           {confirming ? "Confirming…" : confirmLabel(proposal.mode)}
         </button>
         {proposal.proposedEntries.length === 0 && (
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Nothing can be scheduled — no usable days remain before the exam.
           </p>
         )}
         {confirmError && (
-          <p className="text-sm text-red-900 dark:text-red-100">
+          <p className="text-sm text-red-600 dark:text-red-400">
             Couldn&apos;t confirm: {confirmError}
           </p>
         )}
@@ -221,13 +201,13 @@ function ProposalBody({
   if (proposal.mode === "INITIAL") {
     return (
       <>
-        <div className="rounded border border-zinc-300 bg-white px-4 py-3 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50">
+        <Alert tone="neutral">
           <strong>Your study plan.</strong> {proposal.proposedEntries.length}{" "}
           {proposal.proposedEntries.length === 1 ? "topic" : "topics"} across{" "}
           {proposal.daysUsable} usable{" "}
           {proposal.daysUsable === 1 ? "day" : "days"} before {proposal.examDate}
           . Confirming makes this the baseline your pace is measured against.
-        </div>
+        </Alert>
         <DaySchedule entries={proposal.proposedEntries} today={proposal.todayLocal} />
       </>
     );
@@ -237,13 +217,13 @@ function ProposalBody({
     const m = proposal.metrics;
     return (
       <>
-        <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+        <Alert tone="warn">
           <strong>Catch-up pace.</strong> Covering the remaining{" "}
           {m.remainingTopics} topics now takes {rate(m.requiredRate)}/day, up
           from the planned {rate(m.baselineRate)}/day. The redistribution below
           spreads them across your {proposal.daysUsable} usable{" "}
           {proposal.daysUsable === 1 ? "day" : "days"}.
-        </div>
+        </Alert>
         <DaySchedule entries={proposal.proposedEntries} today={proposal.todayLocal} />
       </>
     );
@@ -255,7 +235,7 @@ function ProposalBody({
   const pool = proposal.kept.length + proposal.deferred.length;
   return (
     <>
-      <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-100">
+      <Alert tone="danger">
         {proposal.mode === "TRIAGE" ? (
           <>
             <strong>Full coverage is no longer realistic.</strong> At your cap
@@ -272,7 +252,7 @@ function ProposalBody({
         )}{" "}
         Confirming commits the kept schedule; the deferred topics stay at
         risk, weakest first.
-      </div>
+      </Alert>
 
       <TriagedSection
         heading={`Kept — scheduled weakest first (${proposal.kept.length})`}
@@ -308,18 +288,23 @@ function DaySchedule({
   }
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-xs font-semibold uppercase text-zinc-600 dark:text-zinc-400">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Day by day
       </h3>
       <ul className="flex flex-col gap-2">
         {[...days.entries()].map(([date, dayEntries]) => (
           <li
             key={date}
-            className="rounded border border-zinc-300 px-4 py-3 dark:border-zinc-700"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900"
           >
-            <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
               {date}
-              {date === today && " · today"}
+              {date === today && (
+                <span className="text-indigo-600 dark:text-indigo-400">
+                  {" "}
+                  · today
+                </span>
+              )}
             </p>
             <ul className="mt-1 flex flex-col gap-1">
               {dayEntries.map((entry) => (
@@ -327,10 +312,10 @@ function DaySchedule({
                   key={entry.topicId}
                   className="flex items-baseline justify-between gap-3"
                 >
-                  <span className="truncate text-sm text-zinc-900 dark:text-zinc-50">
+                  <span className="truncate text-sm text-slate-900 dark:text-slate-50">
                     {entry.title}
                   </span>
-                  <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">
+                  <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
                     {entry.moduleTitle}
                   </span>
                 </li>
@@ -357,32 +342,26 @@ function TriagedSection({
   if (topics.length === 0) return null;
   return (
     <div
-      className={`flex flex-col gap-2 rounded border px-4 py-3 ${
+      className={`flex flex-col gap-2 rounded-lg border px-4 py-3 ${
         tone === "deferred"
-          ? "border-red-300 dark:border-red-900"
-          : "border-zinc-300 dark:border-zinc-700"
+          ? TONE.danger
+          : "border-slate-200 bg-white text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
       }`}
     >
-      <h3
-        className={`text-xs font-semibold uppercase ${
-          tone === "deferred"
-            ? "text-red-900 dark:text-red-100"
-            : "text-zinc-600 dark:text-zinc-400"
-        }`}
-      >
+      <h3 className="text-xs font-semibold uppercase tracking-wide">
         {heading}
       </h3>
       <ul className="flex flex-col gap-2">
         {topics.map((topic) => (
           <li key={topic.topicId} className="flex items-center gap-3">
             <span
-              className="w-40 shrink-0 truncate text-xs text-zinc-900 dark:text-zinc-50"
+              className="w-40 shrink-0 truncate text-xs text-slate-900 dark:text-slate-50"
               title={`${topic.title} (${topic.moduleTitle})`}
             >
               {topic.title}
             </span>
             <ReadinessBar value={topic.readiness} />
-            <span className="w-10 shrink-0 text-right text-xs text-zinc-600 dark:text-zinc-400">
+            <span className="w-10 shrink-0 text-right text-xs opacity-80">
               {percent(topic.readiness)}
             </span>
           </li>
