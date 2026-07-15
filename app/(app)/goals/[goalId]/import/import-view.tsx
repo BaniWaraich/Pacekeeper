@@ -192,7 +192,16 @@ export function ImportView({
           const created = await fetchJson<{ id: string }>(
             "/api/topics",
             "POST",
-            { moduleId, title: draftTopic.title, orderIndex: ti },
+            {
+              moduleId,
+              title: draftTopic.title,
+              orderIndex: ti,
+              // Source material is guaranteed non-empty and ≤ MATERIAL_MAX
+              // here (propose gates on both, and the textarea is gone after
+              // the input phase), but guard anyway so a blank value can
+              // never 400 mid-sequence, when edits are locked.
+              ...(material.trim() ? { material } : {}),
+            },
           );
           patchTopic(draftModule.key, draftTopic.key, {
             createdId: created.id,
