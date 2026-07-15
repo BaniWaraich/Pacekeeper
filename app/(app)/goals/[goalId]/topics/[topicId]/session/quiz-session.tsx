@@ -77,8 +77,8 @@ export function QuizSession({
         <p className="text-sm text-slate-700 dark:text-slate-300">
           {answered} answered · {correct} correct
         </p>
-        <Link href={topicHref} className={buttonClass}>
-          Back to topic
+        <Link href="/today" className={buttonClass}>
+          Back to today
         </Link>
       </section>
     );
@@ -170,23 +170,31 @@ export function QuizSession({
           </div>
         )}
 
-        {graded && (
-          <p className="text-sm">
-            <span
-              className={
-                result.outcome === "CORRECT"
-                  ? "font-medium text-emerald-600 dark:text-emerald-400"
-                  : "font-medium text-red-600 dark:text-red-400"
-              }
-            >
-              {result.outcome === "CORRECT" ? "Correct" : "Incorrect"}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400">
-              {" "}
-              · strength {Math.round(result.strength * 100)}%
-            </span>
-          </p>
-        )}
+        {/* MCQ outcome is the server's verdict and worth echoing; a flashcard
+            outcome is the user's own self-mark, so echoing "Correct/Incorrect"
+            (or a strength delta) back at them is noise — acknowledge and move on. */}
+        {graded &&
+          (question.type === "MCQ" ? (
+            <p className="text-sm">
+              <span
+                className={
+                  result.outcome === "CORRECT"
+                    ? "font-medium text-emerald-600 dark:text-emerald-400"
+                    : "font-medium text-red-600 dark:text-red-400"
+                }
+              >
+                {result.outcome === "CORRECT" ? "Correct" : "Incorrect"}
+              </span>
+              <span className="text-slate-500 dark:text-slate-400">
+                {" "}
+                · strength {Math.round(result.strength * 100)}%
+              </span>
+            </p>
+          ) : (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Answer recorded.
+            </p>
+          ))}
 
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
