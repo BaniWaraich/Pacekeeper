@@ -3,13 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  questionInputSchema,
-  type AiQuestionsResponse,
-  type QuestionInput,
-} from "@/lib/validations";
 import { Card } from "@/app/ui";
-import { ApiError, fetchJson } from "../../../fetch-json";
+import {
+  DEFAULT_QUESTION_COUNT,
+  generateAndCommitQuestions,
+} from "./generate-questions";
 import { actionClass, buttonClass, inputClass } from "./question-fields";
 
 /**
@@ -40,7 +38,7 @@ export function DraftPanel({
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>({ s: "idle" });
-  const [count, setCount] = useState(5);
+  const [count, setCount] = useState(DEFAULT_QUESTION_COUNT);
 
   // Navigating away mid-pipeline must neither set state nor fire the batch
   // POST — leaving the page abandons unsaved drafts, same as the review era.
@@ -56,57 +54,31 @@ export function DraftPanel({
     if (panel.s === "generating" || panel.s === "saving") return;
     setPanel({ s: "generating" });
 
-    let drafts: QuestionInput[];
-    try {
-      const result = await fetchJson<AiQuestionsResponse>(
-        "/api/ai/questions",
-        "POST",
-        { topicId, count },
-      );
-      drafts = result.drafts;
-    } catch (err) {
-      if (!aliveRef.current) return;
-      if (err instanceof ApiError && err.code === "AI_UNAVAILABLE") {
-        setPanel({ s: "unavailable" });
-      } else if (err instanceof ApiError && err.code === "NO_MATERIAL") {
-        setPanel({ s: "no-material" });
-      } else {
-        setPanel({
-          s: "idle",
-          error: err instanceof Error ? err.message : "Request failed",
-        });
-      }
-      return;
-    }
-    if (!aliveRef.current) return;
-
-    // The batch route is all-or-nothing, so partial tolerance lives here:
-    // keep the drafts the server schema accepts, silently drop the rest.
-    const valid = drafts.flatMap((d) => {
-      const parsed = questionInputSchema.safeParse(d);
-      return parsed.success ? [parsed.data] : [];
+    const outcome = await generateAndCommitQuestions({
+      topicId,
+      count,
+      isAlive: () => aliveRef.current,
+      onSaving: () => setPanel({ s: "saving" }),
     });
-    if (valid.length === 0) {
-      setPanel({ s: "empty" });
-      return;
-    }
+    if (!aliveRef.current || outcome.status === "aborted") return;
 
-    setPanel({ s: "saving" });
-    try {
-      const res = await fetchJson<{ questions: unknown[] }>(
-        "/api/questions/batch",
-        "POST",
-        { topicId, questions: valid },
-      );
-      if (!aliveRef.current) return;
-      setPanel({ s: "success", added: res.questions.length });
-      router.refresh();
-    } catch (err) {
-      if (!aliveRef.current) return;
-      setPanel({
-        s: "idle",
-        error: err instanceof Error ? err.message : "Request failed",
-      });
+    switch (outcome.status) {
+      case "success":
+        setPanel({ s: "success", added: outcome.added });
+        router.refresh();
+        break;
+      case "unavailable":
+        setPanel({ s: "unavailable" });
+        break;
+      case "no-material":
+        setPanel({ s: "no-material" });
+        break;
+      case "empty":
+        setPanel({ s: "empty" });
+        break;
+      case "error":
+        setPanel({ s: "idle", error: outcome.message });
+        break;
     }
   }
 

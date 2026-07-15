@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import {
   btnPrimary,
@@ -11,11 +12,16 @@ import {
   focusRing,
   linkClass,
   mutedText,
+  Alert,
   EmptyState,
   TONE,
 } from "@/app/ui";
 import { ReadinessRing } from "@/app/readiness-ring";
 import { fetchJson } from "../../../../fetch-json";
+import {
+  DEFAULT_QUESTION_COUNT,
+  generateAndCommitQuestions,
+} from "../generate-questions";
 
 export type SessionQuestion =
   | { id: string; type: "MCQ"; prompt: string; options: string[] }
@@ -69,11 +75,14 @@ export function QuizSession({
   goalId,
   topicId,
   questions,
+  hasMaterial,
 }: {
   goalId: string;
   topicId: string;
   questions: SessionQuestion[];
+  hasMaterial: boolean;
 }) {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [revealed, setRevealed] = useState(false);
@@ -85,15 +94,117 @@ export function QuizSession({
   const [answered, setAnswered] = useState(0);
   const [correct, setCorrect] = useState(0);
 
+  // Empty-session auto-generation. The user asked to be quizzed; if the topic
+  // has material but no questions yet, we run the same AI generate → auto-commit
+  // pipeline DraftPanel uses and flow straight into the quiz — no dead end.
+  const [prep, setPrep] = useState<
+    { s: "idle" } | { s: "preparing" } | { s: "error"; message: string }
+  >({ s: "idle" });
+  // Re-armed on setup so StrictMode's setup→cleanup→setup leaves it true;
+  // going false on unmount stops a mid-flight batch write and any setState.
+  const aliveRef = useRef(true);
+  const startedRef = useRef(false);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
+  async function runGenerate() {
+    setPrep({ s: "preparing" });
+    const outcome = await generateAndCommitQuestions({
+      topicId,
+      count: DEFAULT_QUESTION_COUNT,
+      isAlive: () => aliveRef.current,
+    });
+    if (!aliveRef.current || outcome.status === "aborted") return;
+    if (outcome.status === "success") {
+      // Re-fetch server-side: the new questions come back through the same
+      // projection that strips the MCQ answer key (invariant #8), and the
+      // render short-circuits into the quiz before this zero-branch. Keep the
+      // "Preparing" UI up until those props arrive — zero extra clicks.
+      router.refresh();
+      return;
+    }
+    setPrep({
+      s: "error",
+      message:
+        outcome.status === "unavailable"
+          ? "AI assist is unavailable right now."
+          : outcome.status === "empty"
+            ? "The AI couldn't draft usable questions from this material."
+            : outcome.status === "no-material"
+              ? "This topic needs study material before it can be quizzed."
+              : outcome.message,
+    });
+  }
+
+  // Fire once per page load, only when there are no questions to quiz and there
+  // is material to draft from (no doomed AI call otherwise).
+  useEffect(() => {
+    if (questions.length > 0 || !hasMaterial || startedRef.current) return;
+    startedRef.current = true;
+    runGenerate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const topicHref = `/goals/${goalId}/topics/${topicId}`;
 
   if (questions.length === 0) {
+    // No material: don't fire a doomed AI call — route the user to add it.
+    if (!hasMaterial) {
+      return (
+        <EmptyState title="This topic needs study material first.">
+          <Link
+            href={topicHref}
+            className={`${linkClass} rounded-sm ${focusRing}`}
+          >
+            Add study material →
+          </Link>
+        </EmptyState>
+      );
+    }
+
+    // Generation failed (AI down / rate limit / no usable drafts): never a
+    // dead end — retry, or fall back to writing questions by hand.
+    if (prep.s === "error") {
+      return (
+        <Alert tone="danger" className="flex flex-col items-start gap-3">
+          <p>{prep.message}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className={btnPrimary} onClick={runGenerate}>
+              Try again
+            </button>
+            <Link href={topicHref} className={btnSecondary}>
+              Add questions manually
+            </Link>
+          </div>
+        </Alert>
+      );
+    }
+
+    // Preparing (idle before the effect fires, or generating): the copy is
+    // about the quiz, not the AI plumbing behind it.
     return (
-      <EmptyState title="No active questions in this topic yet.">
-        <Link href={topicHref} className={`${linkClass} rounded-sm ${focusRing}`}>
-          Add questions →
-        </Link>
-      </EmptyState>
+      <section
+        className={`${cardClass} items-center gap-4 p-8 text-center`}
+        role="status"
+        aria-live="polite"
+      >
+        <h2 className={`${displayText} text-xl text-slate-900 dark:text-slate-50`}>
+          Preparing your quiz…
+        </h2>
+        <p className={`text-sm ${mutedText}`}>
+          Writing questions from your material — this takes a few seconds.
+        </p>
+        <div
+          aria-hidden
+          className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+        >
+          <div className="h-full w-full rounded-full bg-gradient-to-r from-momentum-from to-momentum-to motion-safe:animate-pulse dark:from-indigo-500 dark:to-violet-500" />
+        </div>
+      </section>
     );
   }
 
