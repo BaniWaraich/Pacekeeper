@@ -58,7 +58,8 @@ Rules:
 
 - Exactly **one** gradient in the system (the brand gradient). It appears on
   the primary CTA (`btnPrimary`), the In-progress rail on illustrative module
-  rows (landing page), and hero moments — nowhere else.
+  rows (landing page), the session progress bar (the momentum meter of the
+  core loop), and hero moments — nowhere else.
 - Regime/status colors come only from `readyFill` / `notReadyFill` / `TONE` /
   `REGIME_TONE`.
 - **Status is never conveyed by color alone.** Always pair with a number, an
