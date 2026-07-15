@@ -21,12 +21,15 @@ export const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-950";
 
 export const btnBase =
-  "inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none " +
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition disabled:opacity-50 disabled:pointer-events-none " +
   focusRing;
 
+// Hover brightens via glow + brightness, never lighter stops — the gradient's
+// AA contrast with white text holds only at these stops or darker.
 export const btnPrimary = cx(
   btnBase,
-  "bg-indigo-600 text-white hover:bg-indigo-500",
+  "bg-gradient-to-r from-momentum-from to-momentum-to text-white shadow-glow-sm hover:shadow-glow hover:brightness-105",
+  "dark:from-indigo-500 dark:to-violet-500 dark:shadow-glow-dark",
 );
 
 export const btnSecondary = cx(
@@ -54,7 +57,7 @@ export const inputClass = cx(
 );
 
 export const cardClass =
-  "rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900";
+  "rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900";
 
 export const pageClass =
   "mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-6 py-10";
@@ -63,6 +66,9 @@ export const linkClass =
   "font-medium text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400";
 
 export const mutedText = "text-slate-500 dark:text-slate-400";
+
+/** Display type (Space Grotesk): page titles, hero numbers, countdowns. */
+export const displayText = "font-display font-semibold tracking-tight";
 
 /* ------------------------------------------------------------- alert tones */
 
@@ -116,7 +122,12 @@ export function PageHeader({
   return (
     <header className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+        <h1
+          className={cx(
+            displayText,
+            "text-2xl text-slate-900 dark:text-slate-50",
+          )}
+        >
           {title}
         </h1>
         {action}
