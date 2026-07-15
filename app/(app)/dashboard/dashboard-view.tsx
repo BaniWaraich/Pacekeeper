@@ -1,29 +1,59 @@
 "use client";
 
 import Link from "next/link";
-import type { DashboardResponse } from "@/lib/engine-io";
+import type { DashboardResponse, DashboardTopicReadiness } from "@/lib/engine-io";
+import type { PaceRegime } from "@/lib/engine/types";
 import {
   Alert,
   Card,
   EmptyState,
   ErrorState,
+  RegimeBadge,
   Skeleton,
   TONE,
   REGIME_TONE,
+  displayText,
   linkClass,
 } from "@/app/ui";
-import { percent, ReadinessBar } from "../readiness-bar";
+import { ReadinessRing } from "@/app/readiness-ring";
+import { percent } from "../readiness-bar";
+import { Countdown } from "../countdown";
+import { ModuleCard, deriveTopicState } from "../module-card";
 import { useGoalReads } from "../use-goal-reads";
 
 /**
- * Per-goal cards: regime banner + readiness bars against the 0.6 threshold
- * (SPEC 6.6 — weakest first, every weak topic actionable in one click).
- * Read-only; the SLIPPING/TRIAGE banners link into the step-14 plan-review
- * flow, and the arc discriminates on `behindCurrentPlan` ALONE (never
- * planVersion — a freshly confirmed v0 goal must read as "in effect").
+ * Per-goal cards: hero readiness ring + regime banner + module-grouped topic
+ * rows against the 0.6 threshold (SPEC 6.6 — weakest first, every weak topic
+ * actionable in one click). Read-only; the SLIPPING/TRIAGE banners link into
+ * the step-14 plan-review flow, and the arc discriminates on
+ * `behindCurrentPlan` ALONE (never planVersion — a freshly confirmed v0 goal
+ * must read as "in effect").
  */
 
 const rate = (x: number) => x.toFixed(1);
+
+/** What the hero ring measures, with a calm regime inflection. The Alert
+ *  banner below owns the numbers — these lines never repeat them. */
+const HONEST_LINE: Record<PaceRegime, string> = {
+  ON_PACE: "Readiness across every active topic — building on schedule.",
+  SLIPPING: "Readiness across every active topic — the pace needs attention.",
+  TRIAGE: "Readiness across every active topic — focused on what's still reachable.",
+};
+
+/** Group topics by module in first-encounter order: topicReadiness arrives
+ *  weakest-first, so modules order by their weakest topic and topics stay
+ *  weakest-first within — no sorting here. */
+function groupByModule(
+  topics: DashboardTopicReadiness[],
+): [string, DashboardTopicReadiness[]][] {
+  const groups = new Map<string, DashboardTopicReadiness[]>();
+  for (const topic of topics) {
+    const group = groups.get(topic.moduleTitle);
+    if (group) group.push(topic);
+    else groups.set(topic.moduleTitle, [topic]);
+  }
+  return [...groups.entries()];
+}
 
 export function DashboardView() {
   const { state, retry } = useGoalReads<DashboardResponse>("dashboard");
@@ -63,17 +93,18 @@ export function DashboardView() {
 function GoalCard({ data }: { data: DashboardResponse }) {
   return (
     <Card className="flex flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <h2
+          className={`${displayText} min-w-0 flex-1 truncate text-lg text-slate-900 dark:text-slate-50`}
+          title={data.title}
+        >
           {data.title}
         </h2>
-        <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
-          exam {data.examDate}
-          {data.planned &&
-            ` · ${data.planProgress.daysUsable} usable ${
-              data.planProgress.daysUsable === 1 ? "day" : "days"
-            } left`}
-        </span>
+        {data.planned && <RegimeBadge regime={data.regime.regime} />}
+        <Countdown
+          daysUsable={data.planned ? data.planProgress.daysUsable : undefined}
+          examDate={data.examDate}
+        />
       </header>
 
       {data.planned ? <PlannedBody data={data} /> : <UnplannedBody data={data} />}
@@ -117,9 +148,27 @@ function PlannedBody({
   // exceed metrics.remainingTopics by the introduced-but-weak topics, and
   // the banner's arithmetic must agree with the at-risk list below it.
   const triagePool = (regime.keptCount ?? 0) + deferredCount;
+  const deferredIds = new Set(regime.deferred?.map((d) => d.topicId));
 
   return (
     <>
+      <div className="flex flex-wrap items-center gap-5">
+        <ReadinessRing
+          value={data.goalReadiness}
+          size="hero"
+          animate
+          label={`Goal readiness — ${data.title}`}
+        />
+        <div className="min-w-0 flex-1 basis-52">
+          <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+            Goal readiness
+          </p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {HONEST_LINE[regime.regime]}
+          </p>
+        </div>
+      </div>
+
       <Alert tone={REGIME_TONE[regime.regime]}>
         <p>
           {regime.regime === "ON_PACE" && (
@@ -203,38 +252,21 @@ function PlannedBody({
         </div>
       )}
 
-      <div className="flex items-center gap-3">
-        <span className="w-28 shrink-0 text-xs font-medium text-slate-600 dark:text-slate-300">
-          Goal readiness
-        </span>
-        <ReadinessBar value={data.goalReadiness} />
-        <span className="w-10 shrink-0 text-right text-xs font-medium text-slate-600 dark:text-slate-300">
-          {percent(data.goalReadiness)}
-        </span>
-      </div>
-
-      <ul className="flex flex-col gap-2">
-        {data.topicReadiness.map((topic) => (
-          <li key={topic.topicId} className="flex items-center gap-3">
-            <span
-              className="w-28 shrink-0 truncate text-xs text-slate-900 dark:text-slate-50"
-              title={`${topic.title} (${topic.moduleTitle})`}
-            >
-              {topic.title}
-            </span>
-            <ReadinessBar value={topic.readiness} />
-            <span className="w-10 shrink-0 text-right text-xs text-slate-500 dark:text-slate-400">
-              {percent(topic.readiness)}
-            </span>
-            <Link
-              href={`/goals/${data.goalId}/topics/${topic.topicId}/session`}
-              className={`shrink-0 text-xs ${linkClass}`}
-            >
-              Quiz this now
-            </Link>
-          </li>
+      <div className="flex flex-col gap-3">
+        {groupByModule(data.topicReadiness).map(([moduleTitle, topics]) => (
+          <ModuleCard
+            key={moduleTitle}
+            title={moduleTitle}
+            topics={topics.map((topic) => ({
+              topicId: topic.topicId,
+              title: topic.title,
+              readiness: topic.readiness,
+              state: deriveTopicState(topic, deferredIds.has(topic.topicId)),
+              quizHref: `/goals/${data.goalId}/topics/${topic.topicId}/session`,
+            }))}
+          />
         ))}
-      </ul>
+      </div>
     </>
   );
 }
