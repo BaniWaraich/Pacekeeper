@@ -2,7 +2,7 @@
 
 Set a goal and a date. PaceKeeper builds your study plan, quizzes you daily, and tells you the truth about whether you're on track.
 
-**Live demo:** https://pacekeeper-livid.vercel.app (see [Demo account](#demo-account) below)
+**Live demo:** https://pacekeeper-livid.vercel.app (see [Demo account](#demo-account) below) · **Demo video:** https://youtu.be/NmbrHCnf6kc
 
 A deadline-aware spaced-repetition study tool: goals → modules → topics → questions (MCQs + flashcards), a daily Today view driven by a deterministic scheduling engine, and honest pace tracking with slip recalibration and triage.
 
