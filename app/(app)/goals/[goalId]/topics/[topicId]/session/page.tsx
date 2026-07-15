@@ -81,6 +81,7 @@ export default async function SessionPage({
         goalId={goalId}
         topicId={topicId}
         questions={sessionQuestions}
+        hasMaterial={!!topic.material?.trim()}
       />
     </main>
   );
