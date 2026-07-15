@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { PageHeader, pageClass, linkClass } from "@/app/ui";
 import { ImportView } from "./import-view";
 
 /**
@@ -38,23 +39,16 @@ export default async function GoalImportPage({
       : Math.max(...goal.modules.map((m) => m.orderIndex)) + 1;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            Import structure
-          </h1>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            {goal.title} — AI proposes, you confirm
-          </p>
-        </div>
-        <Link
-          href={`/goals/${goal.id}`}
-          className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-        >
-          Back to structure
-        </Link>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title="Build structure from your material"
+        subtitle={`${goal.title} — paste your course material and AI proposes the modules and topics. You review and confirm before anything is saved.`}
+        action={
+          <Link href={`/goals/${goal.id}`} className={linkClass}>
+            Back to structure
+          </Link>
+        }
+      />
 
       <ImportView goalId={goal.id} nextModuleIndex={nextModuleIndex} />
     </main>

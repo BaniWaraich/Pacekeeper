@@ -21,11 +21,17 @@ export default async function LoginPage({
       : "/today";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-8 dark:border-zinc-800 dark:bg-zinc-950">
-        <h1 className="mb-6 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Log in to PaceKeeper
-        </h1>
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">
+      <div className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div className="mb-6 flex flex-col gap-1">
+          <span className="text-lg font-semibold tracking-tight text-slate-900 dark:text-slate-50">
+            PaceKeeper
+          </span>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Set a goal and a date. We&apos;ll tell you the truth about whether
+            you&apos;re on track.
+          </p>
+        </div>
         <LoginForm callbackUrl={safeCallbackUrl} />
       </div>
     </main>

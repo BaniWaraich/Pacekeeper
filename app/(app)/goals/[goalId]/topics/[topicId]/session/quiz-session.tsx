@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
+import {
+  btnPrimary,
+  btnSecondary,
+  cardClass as uiCardClass,
+} from "@/app/ui";
 import { fetchJson } from "../../../../fetch-json";
 
 export type SessionQuestion =
@@ -14,10 +19,8 @@ type CommitPayload =
   | { selectedOption: number }
   | { selfMark: "CORRECT" | "INCORRECT" };
 
-const buttonClass =
-  "rounded border border-zinc-300 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-900";
-const cardClass =
-  "flex flex-col gap-4 rounded border border-zinc-300 p-4 dark:border-zinc-700";
+const buttonClass = btnPrimary;
+const cardClass = `${uiCardClass} flex flex-col gap-4 p-5`;
 
 /**
  * Quiz session (§6.2). One attempt UUID is minted at answer-commit time and
@@ -50,11 +53,11 @@ export function QuizSession({
 
   if (questions.length === 0) {
     return (
-      <p className="text-sm text-zinc-600 dark:text-zinc-400">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         No active questions in this topic yet.{" "}
         <Link
           href={topicHref}
-          className="underline hover:text-zinc-900 dark:hover:text-zinc-100"
+          className="font-medium text-indigo-600 underline-offset-2 hover:underline dark:text-indigo-400"
         >
           Add some
         </Link>
@@ -67,14 +70,14 @@ export function QuizSession({
 
   if (!question) {
     return (
-      <section className={cardClass}>
-        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+      <section className={`${cardClass} items-start`}>
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
           Session complete
         </h2>
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+        <p className="text-sm text-slate-700 dark:text-slate-300">
           {answered} answered · {correct} correct
         </p>
-        <Link href={topicHref} className={`${buttonClass} w-fit`}>
+        <Link href={topicHref} className={buttonClass}>
           Back to topic
         </Link>
       </section>
@@ -123,12 +126,12 @@ export function QuizSession({
 
   return (
     <section className="flex flex-col gap-4">
-      <p className="text-xs uppercase tracking-wide text-zinc-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
         Question {index + 1} of {questions.length}
       </p>
 
       <div className={cardClass}>
-        <p className="text-sm text-zinc-900 dark:text-zinc-50">
+        <p className="text-sm text-slate-900 dark:text-slate-50">
           {question.prompt}
         </p>
 
@@ -136,7 +139,7 @@ export function QuizSession({
           <ul className="flex flex-col gap-2">
             {question.options.map((option, i) => (
               <li key={i}>
-                <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+                <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                   <input
                     type="radio"
                     name={`q-${question.id}`}
@@ -152,13 +155,13 @@ export function QuizSession({
         ) : (
           <div className="flex flex-col gap-2">
             {revealed ? (
-              <p className="rounded bg-zinc-100 px-3 py-2 text-sm text-zinc-900 dark:bg-zinc-900 dark:text-zinc-50">
+              <p className="rounded-md bg-slate-100 px-3 py-2 text-sm text-slate-900 dark:bg-slate-800 dark:text-slate-50">
                 {question.back}
               </p>
             ) : (
               <button
                 type="button"
-                className={`${buttonClass} w-fit`}
+                className={`${btnSecondary} w-fit`}
                 onClick={() => setRevealed(true)}
               >
                 Reveal answer
@@ -172,13 +175,13 @@ export function QuizSession({
             <span
               className={
                 result.outcome === "CORRECT"
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-red-600 dark:text-red-400"
+                  ? "font-medium text-emerald-600 dark:text-emerald-400"
+                  : "font-medium text-red-600 dark:text-red-400"
               }
             >
               {result.outcome === "CORRECT" ? "Correct" : "Incorrect"}
             </span>
-            <span className="text-zinc-500">
+            <span className="text-slate-500 dark:text-slate-400">
               {" "}
               · strength {Math.round(result.strength * 100)}%
             </span>

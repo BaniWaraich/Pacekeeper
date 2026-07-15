@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { activeStructureInclude } from "@/lib/ownership";
+import { PageHeader, pageClass, linkClass } from "@/app/ui";
 import { StructureBuilder } from "./structure-builder";
 
 export default async function GoalStructurePage({
@@ -22,31 +23,21 @@ export default async function GoalStructurePage({
   if (!goal) notFound();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 bg-zinc-50 px-6 py-10 dark:bg-black">
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50">
-            {goal.title}
-          </h1>
-          <p className="text-xs text-zinc-600 dark:text-zinc-400">
-            exam {goal.examDate.toISOString().slice(0, 10)}
-          </p>
-        </div>
-        <span className="flex items-baseline gap-4">
-          <Link
-            href={`/goals/${goal.id}/import`}
-            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            Import from notes
-          </Link>
-          <Link
-            href="/goals"
-            className="text-sm text-zinc-600 underline hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-          >
-            All goals
-          </Link>
-        </span>
-      </header>
+    <main className={pageClass}>
+      <PageHeader
+        title={goal.title}
+        subtitle={`exam ${goal.examDate.toISOString().slice(0, 10)}`}
+        action={
+          <span className="flex items-baseline gap-4">
+            <Link href={`/goals/${goal.id}/import`} className={linkClass}>
+              Build structure from material
+            </Link>
+            <Link href="/goals" className={linkClass}>
+              All goals
+            </Link>
+          </span>
+        }
+      />
 
       <StructureBuilder
         goal={{
