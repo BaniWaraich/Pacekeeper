@@ -58,6 +58,7 @@ export default async function TopicQuestionsPage({
       />
 
       <TopicAuthoring
+        goalId={goalId}
         topicId={topic.id}
         initialMaterial={topic.material ?? ""}
       />

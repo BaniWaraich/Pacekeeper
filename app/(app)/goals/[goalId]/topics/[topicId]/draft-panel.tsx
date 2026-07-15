@@ -1,79 +1,71 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { z } from "zod";
 import {
   questionInputSchema,
   type AiQuestionsResponse,
+  type QuestionInput,
 } from "@/lib/validations";
 import { Card } from "@/app/ui";
 import { ApiError, fetchJson } from "../../../fetch-json";
-import {
-  QuestionFields,
-  actionClass,
-  buttonClass,
-  inputClass,
-  toFormState,
-  toQuestionInput,
-  type FormState,
-} from "./question-fields";
-
-type DraftRow = {
-  key: number;
-  included: boolean;
-  form: FormState;
-  fieldErrors?: Record<string, string[] | undefined>;
-};
+import { actionClass, buttonClass, inputClass } from "./question-fields";
 
 /**
- * AI question drafting (step 13, flow 2). Drafts exist ONLY in this
- * component's state; confirm pre-validates each included draft with the
- * same `questionInputSchema` the server runs, then posts the included set
- * through POST /api/questions/batch — the identical write path manual
- * authoring uses. Leaving the page abandons the drafts, by design.
+ * AI question generation (step 13, flow 2) — auto-commit, no review step.
+ * The AI route stays draft-only; drafts returned to the client are filtered
+ * through the same `questionInputSchema` the server runs, then immediately
+ * posted through POST /api/questions/batch — the identical write path manual
+ * authoring uses. The Generate click is the confirmation. Invalid drafts are
+ * silently dropped; if none survive, nothing is written.
  */
 type Panel =
   | { s: "idle"; error?: string }
-  | { s: "loading" }
+  | { s: "generating" }
+  | { s: "saving" }
   | { s: "unavailable" }
   | { s: "no-material" }
   | { s: "empty" }
-  | { s: "reviewing"; confirming: boolean; error?: string };
+  | { s: "success"; added: number };
 
 export function DraftPanel({
+  goalId,
   topicId,
   materialDirty,
 }: {
+  goalId: string;
   topicId: string;
   materialDirty: boolean;
 }) {
   const router = useRouter();
   const [panel, setPanel] = useState<Panel>({ s: "idle" });
   const [count, setCount] = useState(5);
-  const [rows, setRows] = useState<DraftRow[]>([]);
+
+  // Navigating away mid-pipeline must neither set state nor fire the batch
+  // POST — leaving the page abandons unsaved drafts, same as the review era.
+  const aliveRef = useRef(true);
+  useEffect(
+    () => () => {
+      aliveRef.current = false;
+    },
+    [],
+  );
 
   async function generate() {
-    setPanel({ s: "loading" });
+    if (panel.s === "generating" || panel.s === "saving") return;
+    setPanel({ s: "generating" });
+
+    let drafts: QuestionInput[];
     try {
       const result = await fetchJson<AiQuestionsResponse>(
         "/api/ai/questions",
         "POST",
         { topicId, count },
       );
-      if (result.drafts.length === 0) {
-        setPanel({ s: "empty" });
-        return;
-      }
-      setRows(
-        result.drafts.map((draft, i) => ({
-          key: i,
-          included: true,
-          form: toFormState(draft),
-        })),
-      );
-      setPanel({ s: "reviewing", confirming: false });
+      drafts = result.drafts;
     } catch (err) {
+      if (!aliveRef.current) return;
       if (err instanceof ApiError && err.code === "AI_UNAVAILABLE") {
         setPanel({ s: "unavailable" });
       } else if (err instanceof ApiError && err.code === "NO_MATERIAL") {
@@ -84,68 +76,49 @@ export function DraftPanel({
           error: err instanceof Error ? err.message : "Request failed",
         });
       }
+      return;
     }
-  }
+    if (!aliveRef.current) return;
 
-  async function confirm() {
-    const included = rows.filter((r) => r.included);
-
-    // Client-side pre-validation with the server's own schema: field errors
-    // render inline before any round-trip. The server gate still runs.
-    let anyInvalid = false;
-    const checked = rows.map((row) => {
-      if (!row.included) return { ...row, fieldErrors: undefined };
-      const parsed = questionInputSchema.safeParse(toQuestionInput(row.form));
-      if (parsed.success) return { ...row, fieldErrors: undefined };
-      anyInvalid = true;
-      return {
-        ...row,
-        fieldErrors: z.flattenError(parsed.error).fieldErrors as Record<
-          string,
-          string[] | undefined
-        >,
-      };
+    // The batch route is all-or-nothing, so partial tolerance lives here:
+    // keep the drafts the server schema accepts, silently drop the rest.
+    const valid = drafts.flatMap((d) => {
+      const parsed = questionInputSchema.safeParse(d);
+      return parsed.success ? [parsed.data] : [];
     });
-    setRows(checked);
-    if (anyInvalid) {
-      setPanel({
-        s: "reviewing",
-        confirming: false,
-        error: "Fix the highlighted drafts (or exclude them) to continue.",
-      });
+    if (valid.length === 0) {
+      setPanel({ s: "empty" });
       return;
     }
 
-    setPanel({ s: "reviewing", confirming: true });
+    setPanel({ s: "saving" });
     try {
-      await fetchJson("/api/questions/batch", "POST", {
-        topicId,
-        questions: included.map((r) => toQuestionInput(r.form)),
-      });
-      setRows([]);
-      setPanel({ s: "idle" });
+      const res = await fetchJson<{ questions: unknown[] }>(
+        "/api/questions/batch",
+        "POST",
+        { topicId, questions: valid },
+      );
+      if (!aliveRef.current) return;
+      setPanel({ s: "success", added: res.questions.length });
       router.refresh();
     } catch (err) {
+      if (!aliveRef.current) return;
       setPanel({
-        s: "reviewing",
-        confirming: false,
+        s: "idle",
         error: err instanceof Error ? err.message : "Request failed",
       });
     }
   }
 
-  const patchRow = (key: number, patch: Partial<DraftRow>) =>
-    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
-
-  const includedCount = rows.filter((r) => r.included).length;
+  const busy = panel.s === "generating" || panel.s === "saving";
 
   return (
     <Card className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-        Draft questions with AI
+        Generate questions with AI
       </h2>
 
-      {(panel.s === "idle" || panel.s === "loading") && (
+      {(panel.s === "idle" || busy) && (
         <>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
@@ -156,7 +129,7 @@ export function DraftPanel({
                 max={20}
                 className={`${inputClass} w-20`}
                 value={count}
-                disabled={panel.s === "loading"}
+                disabled={busy}
                 onChange={(e) =>
                   setCount(
                     Math.max(1, Math.min(20, Number(e.target.value) || 1)),
@@ -166,14 +139,18 @@ export function DraftPanel({
             </label>
             <button
               className={buttonClass}
-              disabled={panel.s === "loading" || materialDirty}
+              disabled={busy || materialDirty}
               onClick={generate}
             >
-              {panel.s === "loading" ? "Asking the AI…" : "Draft with AI"}
+              {panel.s === "generating"
+                ? "Generating…"
+                : panel.s === "saving"
+                  ? "Adding questions…"
+                  : "Generate questions"}
             </button>
             {materialDirty && (
               <span className="text-xs text-slate-500 dark:text-slate-400">
-                Save material first — drafting reads the saved version.
+                Save material first — generating reads the saved version.
               </span>
             )}
           </div>
@@ -236,71 +213,24 @@ export function DraftPanel({
         </div>
       )}
 
-      {panel.s === "reviewing" && (
+      {panel.s === "success" && (
         <div className="flex flex-col gap-3">
-          <p className="text-xs text-slate-600 dark:text-slate-400">
-            These are drafts — nothing is saved until you confirm. Edit each
-            one, untick any you don&apos;t want.
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            {panel.added} {panel.added === 1 ? "question" : "questions"} added
+            to this topic.
           </p>
-
-          <ul className="flex flex-col gap-3">
-            {rows.map((row) => (
-              <li
-                key={row.key}
-                className={`flex flex-col gap-2 rounded-lg border p-3 ${
-                  row.included
-                    ? "border-slate-200 dark:border-slate-700"
-                    : "border-slate-200 opacity-60 dark:border-slate-800"
-                }`}
-              >
-                <label className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-                  <input
-                    type="checkbox"
-                    checked={row.included}
-                    disabled={panel.confirming}
-                    onChange={(e) =>
-                      patchRow(row.key, { included: e.target.checked })
-                    }
-                  />
-                  Include this question
-                </label>
-                <QuestionFields
-                  value={row.form}
-                  onChange={(form) => patchRow(row.key, { form })}
-                  disabled={panel.confirming || !row.included}
-                  fieldErrors={row.fieldErrors}
-                />
-              </li>
-            ))}
-          </ul>
-
-          {panel.error && (
-            <p className="text-xs text-red-600 dark:text-red-400">
-              {panel.error}
-            </p>
-          )}
-
           <div className="flex items-center gap-4">
-            <button
+            <Link
+              href={`/goals/${goalId}/topics/${topicId}/session`}
               className={buttonClass}
-              disabled={panel.confirming || includedCount === 0}
-              onClick={confirm}
             >
-              {panel.confirming
-                ? "Adding…"
-                : `Add ${includedCount} ${
-                    includedCount === 1 ? "question" : "questions"
-                  }`}
-            </button>
+              Start studying
+            </Link>
             <button
               className={actionClass}
-              disabled={panel.confirming}
-              onClick={() => {
-                setRows([]);
-                setPanel({ s: "idle" });
-              }}
+              onClick={() => setPanel({ s: "idle" })}
             >
-              Discard drafts
+              Generate more
             </button>
           </div>
         </div>

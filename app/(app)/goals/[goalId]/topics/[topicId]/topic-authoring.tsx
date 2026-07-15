@@ -11,9 +11,11 @@ import { DraftPanel } from "./draft-panel";
  * holds unsaved edits (stale-material guard).
  */
 export function TopicAuthoring({
+  goalId,
   topicId,
   initialMaterial,
 }: {
+  goalId: string;
   topicId: string;
   initialMaterial: string;
 }) {
@@ -26,7 +28,11 @@ export function TopicAuthoring({
         initialMaterial={initialMaterial}
         onDirtyChange={setMaterialDirty}
       />
-      <DraftPanel topicId={topicId} materialDirty={materialDirty} />
+      <DraftPanel
+        goalId={goalId}
+        topicId={topicId}
+        materialDirty={materialDirty}
+      />
     </>
   );
 }
