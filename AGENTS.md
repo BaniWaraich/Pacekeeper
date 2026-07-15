@@ -17,7 +17,9 @@ Auth.js (credentials, JWT) · Gemini (adapter only) · PostHog · Vercel
 3. Strength/readiness/pace are computed on read, never stored.
 4. AI output never writes to the DB. Gemini responses are Zod-validated
    (reject, don't repair), returned as drafts; writes happen only through
-   the normal CRUD endpoints after user confirmation.
+   the normal CRUD endpoints, triggered client-side (question drafts
+   auto-commit via POST /api/questions/batch — the Generate click is the
+   confirmation; structure drafts still confirm explicitly).
 5. No hard deletes of content — set `archivedAt`. Attempt→Question is
    onDelete: Restrict on purpose; if it fires, the code is wrong, not the constraint.
 6. Every API handler: session check → Zod validation → all queries scoped
