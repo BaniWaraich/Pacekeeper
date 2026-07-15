@@ -41,12 +41,6 @@ The app is fully usable without a `GEMINI_API_KEY` — AI features degrade to th
 | `pnpm db:seed` | Reset and reseed the demo account |
 | `pnpm db:studio` | Prisma Studio |
 
-## Documentation
-
-- [Product spec](docs/SPEC.md) — problem, user, scope, flows
-- [Technical design](docs/pacekeeper-technical-design.md) — schema, engine algorithms, API contracts, day plan
-- [AGENTS.md](AGENTS.md) — architecture invariants and conventions
-
 ## Demo account
 
 Log in at https://pacekeeper-livid.vercel.app with:
